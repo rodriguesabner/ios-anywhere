@@ -14,6 +14,7 @@ from pathlib import Path
 
 def run(args, cwd, log, env=None):
     print(f"{log.stem}: {log}", flush=True)
+
     with log.open("w") as stream:
         result = subprocess.run(
             list(map(str, args)),
@@ -22,28 +23,35 @@ def run(args, cwd, log, env=None):
             stdout=stream,
             stderr=subprocess.STDOUT,
         )
+
     if result.returncode:
         raise ValueError(f"Etapa {log.stem} falhou; consulte {log}")
 
 
 def build_directory(config, source):
     source = source.resolve()
+
     if not (source / "package.json").is_file():
         raise ValueError("O projeto Expo precisa conter package.json.")
+
     # Identity derives from the full path; equal folder names cannot share artifacts.
     key = (
         re.sub(r"[^a-zA-Z0-9_-]", "-", source.name)
         + "-"
         + hashlib.sha256(str(source).encode()).hexdigest()[:10]
     )
+
     job = config.cache / "expo" / key
+
     if source == job or source.is_relative_to(job) or job.is_relative_to(source):
         raise ValueError("A fonte precisa ficar fora da área de build.")
+
     return job
 
 
 def tool_env(config, project, build):
     tools = config.toolchain
+
     env = dict(
         config.env(),
         CI="1",
@@ -52,6 +60,7 @@ def tool_env(config, project, build):
         IOS_LINUX_BUILD=str(build),
         COCOAPODS_DISABLE_STATS="true",
     )
+
     env.update(
         LD_LIBRARY_PATH=str(tools / "ruby/usr/lib/x86_64-linux-gnu"),
         RUBYLIB=":".join(
@@ -80,6 +89,7 @@ def tool_env(config, project, build):
             ]
         ),
     )
+
     return env
 
 
@@ -93,38 +103,50 @@ def prepare(config, source):
     build.mkdir(parents=True, exist_ok=True)
     # Replace sources while keeping caches that belong only to this project path.
     caches = ["node_modules", "ios/Pods", "ios/Podfile.lock"]
+
     for name in caches:
         cached = job / ("cache-" + name.replace("/", "-"))
+
         if (project / name).exists():
             if cached.exists():
                 raise ValueError("Cache pendente de recuperação: " + str(cached))
+
             (project / name).rename(cached)
+
     if project.exists():
         shutil.rmtree(project)
+
     shutil.copytree(
         source,
         project,
-        ignore=shutil.ignore_patterns(
-            ".git", "node_modules", ".expo", ".gradle", "Pods", "build"
-        ),
+        ignore=shutil.ignore_patterns(".git", "node_modules", ".expo", ".gradle", "Pods", "build"),
     )
+
     for name in caches:
         cached = job / ("cache-" + name.replace("/", "-"))
+
         if cached.exists():
             (project / name).parent.mkdir(parents=True, exist_ok=True)
+
             if (project / name).is_file():
                 (project / name).unlink()
+
             cached.rename(project / name)
+
     env = tool_env(config, project, build)
     lock = project / "package-lock.json"
+
     if not lock.is_file():
         raise ValueError(
             "Este backend precisa de package-lock.json para instalar as versões do projeto."
         )
+
     fingerprint = hashlib.sha256(
         lock.read_bytes() + (project / "package.json").read_bytes()
     ).hexdigest()
+
     stamp = job / "dependencies.sha256"
+
     if (
         not (project / "node_modules/expo/package.json").exists()
         or not stamp.exists()
@@ -136,7 +158,9 @@ def prepare(config, source):
             job / "npm-install.log",
             env,
         )
+
         stamp.write_text(fingerprint)
+
     run(
         [
             "node",
@@ -150,27 +174,32 @@ def prepare(config, source):
         job / "prebuild.log",
         env,
     )
+
     podfile = project / "ios/Podfile"
     text = podfile.read_text()
     marker = "require 'json'"
+
     if marker not in text:
-        raise ValueError(
-            "Podfile não reconhecido: não encontrei o ponto de configuração Linux."
-        )
+        raise ValueError("Podfile não reconhecido: não encontrei o ponto de configuração Linux.")
+
     text = text.replace(
         marker,
         "# Linux resolves pods; the separate compiler uses the Apple SDK.\nclass ::ReactNativePodsUtils\n  def self.check_minimum_required_xcode(**_options); end\nend\n"
         + marker,
         1,
     )
+
     podfile.write_text(text)
+
     run(
         [tools_ruby(config), config.toolchain / "gems/bin/pod", "install"],
         project / "ios",
         job / "pod-install.log",
         env,
     )
+
     tools = config.toolchain
+
     for filename, xcode in [
         ("pods-graph.json", project / "ios/Pods/Pods.xcodeproj"),
         ("app-graph.json", next((project / "ios").glob("*.xcodeproj"))),
@@ -187,11 +216,13 @@ def prepare(config, source):
                 stdout=stream,
                 check=True,
             )
+
     return job
 
 
 def graphs(job):
     build = job / "build"
+
     return json.loads((build / "pods-graph.json").read_text()), json.loads(
         (build / "app-graph.json").read_text()
     )
@@ -220,9 +251,12 @@ def bundle(config, job):
     modules = project / "node_modules"
     env = tool_env(config, project, build)
     resources = build / "app-resources"
+
     if resources.exists():
         shutil.rmtree(resources)
+
     resources.mkdir()
+
     entry = (
         subprocess.check_output(
             [
@@ -240,6 +274,7 @@ def bundle(config, job):
         .strip()
         .splitlines()[-1]
     )
+
     run(
         [
             "node",
@@ -260,15 +295,17 @@ def bundle(config, job):
         job / "bundle.log",
         env,
     )
+
     compilers = [
         modules / "hermes-compiler/hermesc/linux64-bin/hermesc",
         modules / "react-native/sdks/hermesc/linux64-bin/hermesc",
     ]
+
     compiler = next((p for p in compilers if p.is_file()), None)
+
     if compiler is None:
-        raise ValueError(
-            "Compilador Hermes Linux correspondente ao projeto não encontrado."
-        )
+        raise ValueError("Compilador Hermes Linux correspondente ao projeto não encontrado.")
+
     run(
         [
             compiler,
@@ -282,19 +319,24 @@ def bundle(config, job):
         job / "hermes.log",
         env,
     )
+
     (resources / "main.hbc").replace(resources / "main.jsbundle")
     constants = resources / "EXConstants.bundle"
     constants.mkdir()
+
     run(
         ["node", constants_script(project), project, constants],
         project,
         job / "constants.log",
         env,
     )
+
     updates = modules / "expo-updates/utils/build/createUpdatesResources.js"
+
     if updates.exists():
         dest = resources / "EXUpdates.bundle"
         dest.mkdir()
+
         run(
             ["node", updates, "ios", project, dest, "all", entry],
             project,
@@ -305,32 +347,37 @@ def bundle(config, job):
 
 def patch_splash(project):
     path = project / "node_modules/expo-splash-screen/ios/SplashScreenManager.swift"
+
     if not path.exists():
         return
+
     text = path.read_text()
+
     if 'ofType: "storyboardc"' in text:
         return
+
     marker = "    if let vc = UIStoryboard(name: splashScreenFilename, bundle: nil).instantiateInitialViewController() {"
+
     if marker not in text:
-        raise ValueError(
-            "Implementação de splash screen não reconhecida para o build Linux."
-        )
+        raise ValueError("Implementação de splash screen não reconhecida para o build Linux.")
+
     # shortcut: no ibtool on Linux; use UIKit launch resources until storyboard compilation is supported.
     text = text.replace(
         marker,
         '    guard Bundle.main.path(forResource: splashScreenFilename, ofType: "storyboardc") != nil else { return }\n'
         + marker,
     )
+
     path.write_text(text)
 
 
 def patch_native_sources(project):
     patch_splash(project)
-    source = (
-        project / "node_modules/react-native-screens/ios/RNSScreenStackHeaderConfig.mm"
-    )
+    source = project / "node_modules/react-native-screens/ios/RNSScreenStackHeaderConfig.mm"
+
     if source.exists():
         text = source.read_text()
+
         # shortcut: upstream Clang lacks Apple's constexpr boxed literals; keep the same immutable values.
         for name, value in [
             ("DEFAULT_TITLE_FONT_SIZE", 17),
@@ -340,6 +387,7 @@ def patch_native_sources(project):
                 f"static constexpr auto {name} = @{value};",
                 f"static const auto {name} = @{value};",
             )
+
         if text != source.read_text():
             source.write_text(text)
 
@@ -349,15 +397,20 @@ def patch_scene(project, apps):
     for app in apps:
         path = project / "ios" / app["name"] / "AppDelegate.swift"
         text = path.read_text()
+
         if "UIWindowSceneDelegate" in text:
             continue
+
         start = text.find("    window = UIWindow(frame: UIScreen.main.bounds)")
         end = text.find("      launchOptions: launchOptions)", start)
+
         if start < 0 or end < 0:
             raise ValueError(
                 "AppDelegate personalizado: adapte o ciclo UIScene antes do build SDK 27."
             )
+
         text = text[:start] + text[end + len("      launchOptions: launchOptions)") :]
+
         text += """
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
   var window: UIWindow?
@@ -390,6 +443,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
   func sceneDidEnterBackground(_ scene: UIScene) { appDelegate.applicationDidEnterBackground(UIApplication.shared) }
 }
 """
+
         path.write_text(text)
 
 
@@ -399,19 +453,20 @@ def native(config, job):
     env = tool_env(config, project, build)
     patch_native_sources(project)
     libraries, apps = graphs(job)
+
     if len(apps) != 1:
-        raise ValueError(
-            "Expo externo: extensões ainda exigem adaptação de recursos e assinatura."
-        )
+        raise ValueError("Expo externo: extensões ainda exigem adaptação de recursos e assinatura.")
+
     patch_scene(project, apps)
+
     if any(
-        Path(f["path"]).suffix in (".m", ".mm", ".c", ".cpp")
-        for a in apps
-        for f in a["sources"]
+        Path(f["path"]).suffix in (".m", ".mm", ".c", ".cpp") for a in apps for f in a["sources"]
     ):
         raise ValueError("O target principal externo ainda precisa ser Swift.")
+
     rn = project / "node_modules/react-native"
     version = json.loads((rn / "package.json").read_text())["version"]
+
     for script in [
         "scripts/replace-rncore-version.js",
         "third-party-podspecs/replace_dependencies_version.js",
@@ -424,37 +479,51 @@ def native(config, job):
                 job / (Path(script).stem + ".log"),
                 env,
             )
+
     products = build / "products"
+
     if products.exists():
         shutil.rmtree(products)
+
     products.mkdir()
+
     for cached in ["headers"]:
         if (build / cached).exists():
             shutil.rmtree(build / cached)
+
     common = build / "headers/common"
     common.mkdir(parents=True, exist_ok=True)
+
     for target in libraries:
         out = products / target["name"]
         out.mkdir(exist_ok=True)
         support = pods / "Target Support Files" / target["name"]
         module = target["settings"].get("PRODUCT_MODULE_NAME") or target["name"]
+
         for source in support.glob("*.modulemap"):
             shutil.copy2(source, out / (module + ".modulemap"))
+
             for header in support.glob("*.h"):
                 shutil.copy2(header, out / header.name)
+
         for header in target["headers"]:
             src = Path(header["path"])
             dest = common / src.name
+
             if not dest.exists() and not dest.is_symlink():
                 dest.symlink_to(src)
+
     # Reproduce Xcode's flat public-header lookup for vendored frameworks.
     for framework in sorted(pods.rglob("*.xcframework/ios-arm64/*.framework")):
         for source in sorted((framework / "Headers").rglob("*")):
             if source.suffix not in (".h", ".hpp") or not source.is_file():
                 continue
+
             dest = common / source.name
+
             if not dest.exists() and not dest.is_symlink():
                 dest.symlink_to(source)
+
     # Select dependencies from the app's own aggregate target, in dependency order.
     by_name = {t["name"]: t for t in libraries}
     selected = []
@@ -463,18 +532,25 @@ def native(config, job):
     def visit(name):
         if name in visited:
             return
+
         visited.add(name)
+
         if name not in by_name:
             return
+
         target = by_name[name]
+
         for dependency in target["dependencies"]:
             visit(dependency)
+
         selected.append(target)
 
     for app in apps:
         visit("Pods-" + app["name"])
+
     if not selected:
         raise ValueError("O grafo não contém o aggregate CocoaPods do app.")
+
     for target in selected + apps:
         if any(s["path"].endswith(".swift") for s in target["sources"]):
             run(
@@ -483,6 +559,7 @@ def native(config, job):
                 job / ("swift-" + target["name"] + ".log"),
                 env,
             )
+
     compile_and_link(config, job, selected, apps)
 
 
@@ -492,15 +569,16 @@ def compile_and_link(config, job, selected, apps):
     pods = project / "ios/Pods"
     products = build / "products"
     env = tool_env(config, project, build)
+
     sources = [
         t
         for t in selected
         if any(
-            Path(s["path"]).suffix
-            in (".c", ".m", ".mm", ".cpp", ".cc", ".cxx", ".S", ".s")
+            Path(s["path"]).suffix in (".c", ".m", ".mm", ".cpp", ".cc", ".cxx", ".S", ".s")
             for s in t["sources"]
         )
     ]
+
     if sources:
         run(
             ["python3", SCRIPTS / "compile-pods.py", *[t["name"] for t in sources]],
@@ -508,37 +586,44 @@ def compile_and_link(config, job, selected, apps):
             job / "compile.log",
             env,
         )
+
     archives = []
+
     for target in selected:
         out = products / target["name"]
         objects = list(out.glob("*.o"))
+
         if objects:
             archive = out / ("lib" + target["name"] + ".a")
+
             run(
                 [config.llvm_ar, "rcs", archive, *objects],
                 project,
                 job / ("archive-" + target["name"] + ".log"),
             )
+
             archives.append(archive)
+
     import shlex
 
     frameworks = list(pods.rglob("*.xcframework/ios-arm64/*.framework"))
     sdk = config.toolchain / "sdks/iPhoneOS27.0.sdk"
-    needs_cxx = any(
-        t["settings"].get("SWIFT_OBJC_INTEROP_MODE") == "objcxx" for t in selected
-    )
+    needs_cxx = any(t["settings"].get("SWIFT_OBJC_INTEROP_MODE") == "objcxx" for t in selected)
     # shortcut: the prepared Cxx overlay targets iOS 27; rebuild and validate it before supporting older iOS.
     minimum = "27.0" if needs_cxx else "16.4"
+
     for app in apps:
         name = app["name"]
         out = products / name
         out.mkdir(exist_ok=True)
+
         cfg = (
             pods
             / "Target Support Files"
             / ("Pods-" + name)
             / ("Pods-" + name + ".release.xcconfig")
         )
+
         flags = shlex.split(
             next(
                 l.split("=", 1)[1]
@@ -546,7 +631,9 @@ def compile_and_link(config, job, selected, apps):
                 if l.startswith("OTHER_LDFLAGS =")
             )
         )
+
         flags = [f for f in flags if f != "$(inherited)"]
+
         cmd = [
             tools / "darwin-tools/bin/ld64.lld",
             "-arch",
@@ -573,36 +660,43 @@ def compile_and_link(config, job, selected, apps):
             *out.glob("*.o"),
             config.toolchain / "os_version_check.o",
         ]
+
         cmd += ["-L" + str(a.parent) for a in archives]
         cmd += ["-F" + str(f.parent) for f in frameworks] + flags
         cmd += [tools / "cxx-runtime/compat-markers.o"]
+
         if needs_cxx:
             cmd += [tools / "cxx-runtime/Cxx.o"]
+
         if app["settings"].get("APPLICATION_EXTENSION_API_ONLY") == "YES":
             cmd += ["-application_extension", "-e", "_NSExtensionMain", "-u", "_main"]
-        (out / "link-command.json").write_text(
-            json.dumps(list(map(str, cmd)), indent=2)
-        )
+
+        (out / "link-command.json").write_text(json.dumps(list(map(str, cmd)), indent=2))
         run(cmd, project, job / ("link-" + name + ".log"))
 
 
 def stage(job):
     project, build = job / "project", job / "build"
     libraries, apps = graphs(job)
+
     # shortcut: extension resource scripts need dedicated support before external widget builds.
     if len(apps) != 1:
         raise ValueError(
             "O backend externo ainda precisa de adaptação para múltiplos targets/extensões."
         )
+
     app = apps[0]
     name = app["name"]
     settings = app["settings"]
     root = build / "stage"
+
     if root.exists():
         shutil.rmtree(root)
+
     dest = root / "Payload" / (name + ".app")
     dest.mkdir(parents=True)
     info = plistlib.loads((project / "ios" / settings["INFOPLIST_FILE"]).read_bytes())
+
     variables = {
         **settings,
         "PRODUCT_BUNDLE_PACKAGE_TYPE": "APPL",
@@ -612,26 +706,30 @@ def stage(job):
         "MARKETING_VERSION": settings.get("MARKETING_VERSION") or "1.0",
         "CURRENT_PROJECT_VERSION": settings.get("CURRENT_PROJECT_VERSION") or "1",
     }
+
     raw = json.dumps(info)
     raw = re.sub(r"\$\(([^)]+)\)", lambda m: str(variables.get(m[1]) or m[0]), raw)
+
     if "$(" in raw:
         raise ValueError(
             "Variáveis não resolvidas no Info.plist: "
             + ", ".join(sorted(set(re.findall(r"\$\(([^)]+)\)", raw))))
         )
+
     info = json.loads(raw)
+
     info.update(
         CFBundleExecutable=name,
         CFBundlePackageType="APPL",
         CFBundleSupportedPlatforms=["iPhoneOS"],
         MinimumOSVersion="27.0"
-        if any(
-            t["settings"].get("SWIFT_OBJC_INTEROP_MODE") == "objcxx" for t in libraries
-        )
+        if any(t["settings"].get("SWIFT_OBJC_INTEROP_MODE") == "objcxx" for t in libraries)
         else "16.4",
     )
+
     info.pop("UILaunchStoryboardName", None)
     info["UILaunchScreen"] = {}
+
     info.setdefault(
         "UIApplicationSceneManifest",
         {
@@ -640,25 +738,25 @@ def stage(job):
                 "UIWindowSceneSessionRoleApplication": [
                     {
                         "UISceneConfigurationName": "Default Configuration",
-                        "UISceneDelegateClassName": (
-                            settings.get("PRODUCT_MODULE_NAME") or name
-                        )
+                        "UISceneDelegateClassName": (settings.get("PRODUCT_MODULE_NAME") or name)
                         + ".SceneDelegate",
                     }
                 ]
             },
         },
     )
+
     binary = build / "products" / name / name
     shutil.copy2(binary, dest / name)
     (dest / name).chmod(0o755)
+
     for target in libraries:
         if not target["resources"]:
             continue
-        resource = dest / (
-            (target["settings"].get("PRODUCT_NAME") or target["name"]) + ".bundle"
-        )
+
+        resource = dest / ((target["settings"].get("PRODUCT_NAME") or target["name"]) + ".bundle")
         resource.mkdir(exist_ok=True)
+
         (resource / "Info.plist").write_bytes(
             plistlib.dumps(
                 {
@@ -668,19 +766,24 @@ def stage(job):
                 }
             )
         )
+
         for filename in target["resources"]:
             src = Path(filename)
+
             if not src.exists():
                 raise ValueError("Recurso nativo não gerado: " + filename)
+
             if src.is_dir():
                 shutil.copytree(src, resource / src.name, dirs_exist_ok=True)
             else:
                 shutil.copy2(src, resource / src.name)
+
     for src in (build / "app-resources").iterdir():
         if src.is_dir():
             shutil.copytree(src, dest / src.name, dirs_exist_ok=True)
         else:
             shutil.copy2(src, dest / src.name)
+
     for resource in dest.glob("*.bundle"):
         if not (resource / "Info.plist").exists():
             (resource / "Info.plist").write_bytes(
@@ -692,6 +795,7 @@ def stage(job):
                     }
                 )
             )
+
     for src in (project / "ios" / name).rglob("*"):
         if src.name in (
             "Expo.plist",
@@ -699,9 +803,9 @@ def stage(job):
             "PrivacyInfo.xcprivacy",
         ):
             shutil.copy2(src, dest / src.name)
-    icons = list(
-        (project / "ios" / name).glob("Images.xcassets/AppIcon.appiconset/*.png")
-    )
+
+    icons = list((project / "ios" / name).glob("Images.xcassets/AppIcon.appiconset/*.png"))
+
     if icons:
         from PIL import Image
 
@@ -715,9 +819,9 @@ def stage(job):
                 icon.convert("RGB").resize((size, size), Image.Resampling.LANCZOS).save(
                     dest / filename
                 )
-        info["CFBundleIcons"] = {
-            "CFBundlePrimaryIcon": {"CFBundleIconFiles": ["AppIcon60x60"]}
-        }
+
+        info["CFBundleIcons"] = {"CFBundlePrimaryIcon": {"CFBundleIconFiles": ["AppIcon60x60"]}}
+
         info["CFBundleIcons~ipad"] = {
             "CFBundlePrimaryIcon": {
                 "CFBundleIconFiles": [
@@ -727,26 +831,26 @@ def stage(job):
                 ]
             }
         }
-    for src in (project / "ios" / name).glob(
-        "Images.xcassets/SplashScreenLogo.imageset/*.png"
-    ):
+
+    for src in (project / "ios" / name).glob("Images.xcassets/SplashScreenLogo.imageset/*.png"):
         scale = "@3x" if "@3x" in src.stem else "@2x" if "@2x" in src.stem else ""
         shutil.copy2(src, dest / ("SplashScreenLogo" + scale + ".png"))
         info["UILaunchScreen"] = {"UIImageName": "SplashScreenLogo"}
+
     (dest / "Info.plist").write_bytes(plistlib.dumps(info))
+
     for fw in (project / "ios/Pods").rglob("*.xcframework/ios-arm64/*.framework"):
         data = (fw / fw.stem).read_bytes()
+
         # MH_DYLIB only; static vendor frameworks are already linked into the executable.
-        if (
-            data[:4] == bytes.fromhex("cffaedfe")
-            and int.from_bytes(data[12:16], "little") == 6
-        ):
+        if data[:4] == bytes.fromhex("cffaedfe") and int.from_bytes(data[12:16], "little") == 6:
             shutil.copytree(
                 fw,
                 dest / "Frameworks" / fw.name,
                 ignore=shutil.ignore_patterns("Headers", "Modules", "_CodeSignature"),
                 dirs_exist_ok=True,
             )
+
     return dest
 
 
@@ -754,10 +858,12 @@ def build(config, source, output, credentials):
     credentials = credentials or source / "credentials.json"
     signing.check_output(output)
     signing.check_credentials(credentials)
+
     if not credentials.is_file() or not json.loads(credentials.read_text()).get("ios"):
         raise ValueError(
             "Informe --credentials com credenciais iOS; o arquivo padrão é credentials.json do projeto."
         )
+
     job = prepare(config, source)
     bundle(config, job)
     native(config, job)

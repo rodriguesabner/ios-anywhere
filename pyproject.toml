@@ -17,3 +17,6 @@ include = ["ios_linux*"]
 
 [tool.setuptools.package-data]
 ios_linux = ["scripts/*", "scripts/bin/*", "templates/*"]
+
+[tool.ruff]
+line-length = 100

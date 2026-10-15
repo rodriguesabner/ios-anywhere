@@ -12,8 +12,7 @@ TEMPLATES = Path(__file__).parent / "templates"
 
 def default_config():
     return (
-        Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
-        / "ios-linux/config.json"
+        Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "ios-linux/config.json"
     )
 
 
@@ -28,10 +27,10 @@ class Config:
     @classmethod
     def load(cls, path=None):
         path = (path or default_config()).expanduser().resolve()
+
         if not path.is_file():
-            raise ValueError(
-                f"Configuração ausente: {path}. Consulte docs/toolchain.md."
-            )
+            raise ValueError(f"Configuração ausente: {path}. Consulte docs/toolchain.md.")
+
         data = json.loads(path.read_text())
 
         def resolve(value):
@@ -48,6 +47,7 @@ class Config:
 
     def env(self):
         tools = self.toolchain
+
         return dict(
             os.environ,
             IOS_LINUX_TOOLCHAIN=str(tools),
@@ -61,6 +61,7 @@ class Config:
             "darwin-tools/bin/ld64.lld",
             "signing/node_modules/zsign-wasm/package.json",
         ]
+
         if engine == "expo":
             required += [
                 "swift/usr/bin/swiftc",
@@ -82,16 +83,18 @@ class Config:
                 "godot/libMoltenVK.a",
                 "sdks/iPhoneOS18.5.sdk/SDKSettings.json",
             ]
+
         errors = [
             f"Ausente: {self.toolchain / name}"
             for name in required
             if not (self.toolchain / name).exists()
         ]
-        for command in ["node", "openssl"] + (
-            ["npm", self.llvm_ar] if engine == "expo" else []
-        ):
+
+        for command in ["node", "openssl"] + (["npm", self.llvm_ar] if engine == "expo" else []):
             if not shutil.which(command):
                 errors.append(f"Comando ausente: {command}")
+
         if errors:
             raise ValueError("\n".join(errors))
+
         print(f"OK: ferramentas {engine} disponíveis. Toolchain: {self.toolchain}")

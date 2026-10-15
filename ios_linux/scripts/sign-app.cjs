@@ -8,9 +8,12 @@ const project = path.dirname(credentialFile);
 const app = process.env.IOS_LINUX_APP;
 let credentials = JSON.parse(fs.readFileSync(credentialFile)).ios;
 assert(credentials, 'Missing iOS credentials');
-if (credentials.distributionCertificate) credentials = {main: credentials};
+if (credentials.distributionCertificate) credentials = { main: credentials };
 const entries = Object.values(credentials);
-assert(entries.length && entries.every(e => e.distributionCertificate && e.provisioningProfilePath), 'Invalid iOS credentials');
+assert(
+  entries.length && entries.every((e) => e.distributionCertificate && e.provisioningProfilePath),
+  'Invalid iOS credentials',
+);
 async function main() {
   assert(fs.existsSync(path.join(app, 'Info.plist')), 'No staged app');
   const client = await ZsignWasmClient.create();
@@ -19,7 +22,8 @@ async function main() {
   function upload(local, virtual) {
     vfs.mkdirTree(virtual);
     for (const name of fs.readdirSync(local)) {
-      const src = path.join(local, name), dst = `${virtual}/${name}`;
+      const src = path.join(local, name);
+      const dst = `${virtual}/${name}`;
       if (fs.statSync(src).isDirectory()) upload(src, dst);
       else vfs.writeFile(dst, fs.readFileSync(src));
     }
@@ -31,15 +35,24 @@ async function main() {
   const provFiles = [];
   for (const name of Object.keys(credentials)) {
     const dst = `/sign/${name}.mobileprovision`;
-    vfs.writeFile(dst, fs.readFileSync(path.resolve(project, credentials[name].provisioningProfilePath)));
+    vfs.writeFile(
+      dst,
+      fs.readFileSync(path.resolve(project, credentials[name].provisioningProfilePath)),
+    );
     provFiles.push(dst);
   }
-  const result = client.signBundleMulti('/app/Bundle.app', {pkeyFile:'/sign/key.p12', password:cert.password, provFiles, forceSign:true});
+  const result = client.signBundleMulti('/app/Bundle.app', {
+    pkeyFile: '/sign/key.p12',
+    password: cert.password,
+    provFiles,
+    forceSign: true,
+  });
   assert(result === undefined || result === 0, `Signing failed: ${result}`);
   function download(virtual, local) {
-    fs.mkdirSync(local, {recursive:true});
-    for (const name of vfs.readdir(virtual).filter(x => x !== '.' && x !== '..')) {
-      const src = `${virtual}/${name}`, dst = path.join(local, name);
+    fs.mkdirSync(local, { recursive: true });
+    for (const name of vfs.readdir(virtual).filter((x) => x !== '.' && x !== '..')) {
+      const src = `${virtual}/${name}`;
+      const dst = path.join(local, name);
       if (vfs.isDir(vfs.stat(src).mode)) download(src, dst);
       else fs.writeFileSync(dst, vfs.readFile(src));
     }
@@ -47,8 +60,11 @@ async function main() {
   download('/app/Bundle.app', app);
   console.log('Signed app with supplied provisioning profiles.');
 }
-main().catch(error => {
+main().catch((error) => {
   let message = String(error.message);
-  for (const entry of Object.values(credentials)) if (entry.distributionCertificate?.password) message = message.split(entry.distributionCertificate.password).join('[REDACTED]');
-  console.error(message); process.exitCode = 1;
+  for (const entry of Object.values(credentials))
+    if (entry.distributionCertificate?.password)
+      message = message.split(entry.distributionCertificate.password).join('[REDACTED]');
+  console.error(message);
+  process.exitCode = 1;
 });

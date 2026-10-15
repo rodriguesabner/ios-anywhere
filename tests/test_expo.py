@@ -15,25 +15,26 @@ class ExpoTests(unittest.TestCase):
             nested = expo / "node_modules/expo-constants/scripts/getAppConfig.js"
             nested.parent.mkdir(parents=True)
             nested.touch()
+
             (nested.parent.parent / "package.json").write_text(
                 '{"exports":{"./package.json":"./package.json"}}'
             )
+
             self.assertEqual(expo_backend.constants_script(project), nested)
             hoisted = project / "node_modules/expo-constants/scripts/getAppConfig.js"
             hoisted.parent.mkdir(parents=True)
             hoisted.touch()
+
             (hoisted.parent.parent / "package.json").write_text(
                 '{"exports":{"./package.json":"./package.json"}}'
             )
+
             self.assertEqual(expo_backend.constants_script(project), hoisted)
 
     def test_splash_patch_is_idempotent_and_keeps_existing_behavior(self):
         with tempfile.TemporaryDirectory() as temp:
             project = Path(temp)
-            source = (
-                project
-                / "node_modules/expo-splash-screen/ios/SplashScreenManager.swift"
-            )
+            source = project / "node_modules/expo-splash-screen/ios/SplashScreenManager.swift"
             source.parent.mkdir(parents=True)
             original = "    if let vc = UIStoryboard(name: splashScreenFilename, bundle: nil).instantiateInitialViewController() {\n      loadingView = vc.view\n    }"
             source.write_text(original)
@@ -49,9 +50,11 @@ class ExpoTests(unittest.TestCase):
             project = Path(temp)
             path = project / "ios/App/AppDelegate.swift"
             path.parent.mkdir(parents=True)
+
             path.write_text(
                 'setupBefore()\n    window = UIWindow(frame: UIScreen.main.bounds)\n    factory.startReactNative(\n      withModuleName: "main",\n      in: window,\n      launchOptions: launchOptions)\nsetupAfter()\n'
             )
+
             apps = [{"name": "App"}]
             expo_backend.patch_scene(project, apps)
             first = path.read_text()
@@ -65,15 +68,15 @@ class ExpoTests(unittest.TestCase):
     def test_native_patch_preserves_boxed_values_and_other_constants(self):
         with tempfile.TemporaryDirectory() as temp:
             project = Path(temp)
-            source = (
-                project
-                / "node_modules/react-native-screens/ios/RNSScreenStackHeaderConfig.mm"
-            )
+            source = project / "node_modules/react-native-screens/ios/RNSScreenStackHeaderConfig.mm"
             source.parent.mkdir(parents=True)
+
             source.write_text(
                 "static constexpr auto DEFAULT_TITLE_FONT_SIZE = @17;\nstatic constexpr int other = 99;"
             )
+
             expo_backend.patch_native_sources(project)
+
             self.assertEqual(
                 source.read_text(),
                 "static const auto DEFAULT_TITLE_FONT_SIZE = @17;\nstatic constexpr int other = 99;",
@@ -89,6 +92,7 @@ class ExpoTests(unittest.TestCase):
             (job / "build/products/Other/Other").write_bytes(b"linked")
             (job / "build/app-resources").mkdir()
             (job / "build/app-resources/main.jsbundle").write_bytes(b"javascript")
+
             (job / "project/ios/Other/Info.plist").write_bytes(
                 plistlib.dumps(
                     {
@@ -97,7 +101,9 @@ class ExpoTests(unittest.TestCase):
                     }
                 )
             )
+
             (job / "build/pods-graph.json").write_text("[]")
+
             (job / "build/app-graph.json").write_text(
                 json.dumps(
                     [
@@ -112,6 +118,7 @@ class ExpoTests(unittest.TestCase):
                     ]
                 )
             )
+
             app = expo_backend.stage(job)
             self.assertEqual(app.name, "Other.app")
             info = plistlib.loads((app / "Info.plist").read_bytes())
@@ -119,10 +126,13 @@ class ExpoTests(unittest.TestCase):
             self.assertEqual(info["CFBundleVersion"], "42")
             self.assertFalse((app / "PlugIns").exists())
             self.assertEqual(info["MinimumOSVersion"], "16.4")
+
             scene = info["UIApplicationSceneManifest"]["UISceneConfigurations"][
                 "UIWindowSceneSessionRoleApplication"
             ][0]
+
             self.assertEqual(scene["UISceneDelegateClassName"], "Other.SceneDelegate")
+
             (job / "build/pods-graph.json").write_text(
                 json.dumps(
                     [
@@ -133,7 +143,9 @@ class ExpoTests(unittest.TestCase):
                     ]
                 )
             )
+
             app = expo_backend.stage(job)
+
             self.assertEqual(
                 plistlib.loads((app / "Info.plist").read_bytes())["MinimumOSVersion"],
                 "27.0",

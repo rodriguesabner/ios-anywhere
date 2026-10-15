@@ -28,9 +28,7 @@ class CliTests(unittest.TestCase):
 
     def test_doctor_has_no_default_project(self):
         with (
-            patch.object(
-                Config, "load", return_value=Config(Path("/tools"), Path("/cache"))
-            ),
+            patch.object(Config, "load", return_value=Config(Path("/tools"), Path("/cache"))),
             patch.object(Config, "doctor") as doctor,
         ):
             cli.execute(["doctor"])
@@ -46,11 +44,14 @@ class CliTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             p = Path(temp) / "app.ipa"
             p.write_bytes(b"preserve")
+
             with self.assertRaises(ValueError):
                 signing.check_output(p)
+
             self.assertEqual(p.read_bytes(), b"preserve")
             p.unlink()
             p.with_suffix(".verification.json").touch()
+
             with self.assertRaises(ValueError):
                 signing.check_output(p)
 
@@ -79,6 +80,7 @@ class CliTests(unittest.TestCase):
                         root / "credentials.json",
                         root,
                     )
+
             self.assertFalse((root / "out.ipa").exists())
             self.assertFalse((root / "out.verification.json").exists())
 
@@ -99,10 +101,12 @@ class CliTests(unittest.TestCase):
             info = plistlib.loads((app / "Info.plist").read_bytes())
             self.assertEqual(info["CFBundleIdentifier"], "com.example.game")
             self.assertEqual(info["CFBundleDisplayName"], "Portable Game")
+
             self.assertEqual(
                 info["UISupportedInterfaceOrientations"],
                 ["UIInterfaceOrientationPortrait"],
             )
+
             self.assertEqual((source / "project.godot").read_text(), text)
             self.assertFalse((source / "export_presets.cfg").exists())
 
@@ -113,8 +117,11 @@ class CliTests(unittest.TestCase):
             source.mkdir()
             (source / "project.godot").touch()
             config = Config(root / "tools", root / "cache")
+
             with self.assertRaisesRegex(ValueError, "Bundle ID"):
                 godot.prepare(config, source, "../../escape")
+
             (source / "plugin.gdextension").touch()
+
             with self.assertRaisesRegex(ValueError, "GDExtensions"):
                 godot.prepare(config, source, "com.example.game")
