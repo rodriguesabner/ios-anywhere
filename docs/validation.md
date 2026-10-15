@@ -15,7 +15,9 @@ Executada em 2026-10-15, Linux x86_64.
 
 ## Testes no aparelho
 
-Antes da refatoração, o app Expo mínimo e projetos reais Expo/Godot tiveram abertura/uso confirmados pelo usuário no iPhone. Os IPAs produzidos **após** a refatoração passaram na compilação e verificação local, mas ainda precisam de teste manual no aparelho. Não extrapole a confirmação anterior para dependências ou funções não testadas.
+Em 2026-10-15, os IPAs **Expo-Portable-01** e **Godot-Portable-01**, produzidos após a refatoração, foram instalados no iPhone. O usuário confirmou a abertura e o funcionamento dos dois exemplos: “os dois abriram e funcionaram 100%”.
+
+Essa confirmação valida o uso dos exemplos mínimos no aparelho testado. Não representa teste exaustivo de outros projetos, dependências nativas ou recursos como compras e anúncios.
 
 ## Não verificado
 
