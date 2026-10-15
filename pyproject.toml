@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ios-linux"
+version = "0.2.0"
+description = "Experimental local iOS builds for Expo and Godot on Linux"
+requires-python = ">=3.11"
+dependencies = ["Pillow>=10"]
+
+[project.scripts]
+ios-linux = "ios_linux.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["ios_linux*"]
+
+[tool.setuptools.package-data]
+ios_linux = ["scripts/*", "scripts/bin/*", "templates/*"]

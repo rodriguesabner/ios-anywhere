@@ -1,0 +1,2 @@
+#!/bin/sh
+exec "$IOS_LINUX_TOOLCHAIN/swift/usr/bin/clang" -target arm64-apple-ios16.4 -isysroot "$IOS_LINUX_TOOLCHAIN/sdks/iPhoneOS26.4.sdk" -fuse-ld="$IOS_LINUX_TOOLCHAIN/darwin-tools/bin/ld64.lld" -Wl,-platform_version,ios,16.4,26.4 "$@"

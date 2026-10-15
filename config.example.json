@@ -1,0 +1,6 @@
+{
+  "toolchain": "~/.local/share/ios-linux/toolchain",
+  "cache": "~/.cache/ios-linux",
+  "llvm_ar": "llvm-ar",
+  "installer": "ideviceinstaller"
+}

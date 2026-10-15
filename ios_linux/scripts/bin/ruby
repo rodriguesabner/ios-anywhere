@@ -1,0 +1,2 @@
+#!/bin/sh
+exec "$IOS_LINUX_TOOLCHAIN/ruby/usr/bin/ruby3.2" "$@"

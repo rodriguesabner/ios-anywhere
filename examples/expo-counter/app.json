@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "Expo Linux Teste",
+    "slug": "expo-linux-teste",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "bundleIdentifier": "com.example.expolinux",
+      "buildNumber": "1",
+      "supportsTablet": false
+    }
+  }
+}
