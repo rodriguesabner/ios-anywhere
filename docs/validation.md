@@ -88,3 +88,10 @@ CocoaPods can remove glog's `configure` after installation. Recovery therefore l
 The Expo linker now reads XCFramework metadata under Pods and selected local Pod source roots. For requested `-l` libraries it adds static `.a` slice directories matching iOS device and arm64, including names such as `ios-arm64_arm64e`. Simulator/tvOS variants and unrequested libraries are excluded. Missing archive paths and conflicting matching libraries fail explicitly.
 
 Regression checks cover local node_modules Pods, platform selection, duplicate discovery and invalid paths. A real arm64/arm64e universal archive containing a synthetic function failed to link without the search path and linked successfully with the selected path. This is not a complete Skia or Expo application validation; framework packaging and unrelated SDK auto-link warnings are unchanged.
+
+
+## Second-PC Expo Meatball test — 2026-10-16
+
+After the Expo 53 dependency and Skia linking fixes, and matching the bundle identifier to the provisioning profile, the user confirmed installation on an iPhone and supplied screenshots of the app open and installed. [Published screenshots and project details](reproduced-projects.md#expo-meatball-animation).
+
+This upgrades the result for this particular project from component-only checks to user-confirmed installation and initial UI rendering. Full interaction and animation coverage, exact upstream revision, final IPA hash and App Store compatibility were not recorded or independently verified.
