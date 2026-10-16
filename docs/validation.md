@@ -30,3 +30,9 @@ Full bootstrap on a clean machine; other compiler/SDK combinations; Linux arm64;
 - The CS Callouts experiment uploaded an IPA containing a Linux-built executable and an asset catalog reused from an EAS build of the same app. Completed upload does not confirm Apple processing or approval; that final confirmation was not verified.
 - All 13 automated tests passed again, including metadata and icon preservation checks.
 - The public name became ios-anywhere. The previous command, Python module, and configuration paths were preserved.
+
+## Continuous Expo demonstration
+
+On 2026-10-15, Expo-Demo-04 was compiled through the installed CLI, signed with the app's Apple distribution credentials, verified, and installed on the connected iPhone (InstallComplete 100%). The user opened the sample and incremented the counter to 17, visible in the final capture.
+
+The 3 min 41 sec recording is continuous, with no pauses or cuts. Credential acquisition is explained rather than executed; the build and installation are real. The website copy has no audio. This device test does not validate App Store processing or arbitrary native dependencies.

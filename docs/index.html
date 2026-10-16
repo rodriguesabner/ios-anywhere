@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ios-anywhere</title>
+<meta name="description" content="ios-anywhere: experimental CLI to build, sign and install iOS apps locally on Linux, with Expo and Godot backends.">
+<style>
+  :root {
+    --bg: oklch(98% 0.012 85); --bg-alt: oklch(95% 0.012 85);
+    --ink: oklch(18% 0.015 85); --ink-soft: oklch(42% 0.012 85);
+    --border: oklch(85% 0.01 85);
+    --lime: oklch(72% 0.19 135); --lime-wash: oklch(94% 0.06 135); --lime-text: oklch(38% 0.14 135);
+    --blue: oklch(52% 0.12 241);
+    --sans: ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, 'SFMono-Regular', 'IBM Plex Mono', Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: oklch(17% 0.012 250); --bg-alt: oklch(22% 0.012 250);
+      --ink: oklch(96% 0.015 85); --ink-soft: oklch(72% 0.015 85);
+      --border: oklch(33% 0.012 250);
+      --lime: oklch(78% 0.19 135); --lime-wash: oklch(27% 0.08 135); --lime-text: oklch(85% 0.17 135);
+      --blue: oklch(72% 0.1 240);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); line-height: 1.5; min-height: 100vh; }
+  ::selection { background: var(--lime-wash); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  .skip { position: absolute; left: -9999px; top: 0; background: var(--ink); color: var(--bg); padding: 12px 18px; z-index: 100; font-size: 14px; }
+  .skip:focus { position: static; }
+
+  header { position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 1px solid var(--border); }
+  header .wrap { padding-top: 18px; padding-bottom: 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .logo { font-family: var(--mono); font-weight: 700; font-size: 18px; color: var(--ink); text-decoration: none; letter-spacing: -0.02em; }
+  nav { display: flex; gap: 24px; flex-wrap: wrap; }
+  nav a { color: var(--ink-soft); text-decoration: none; font-size: 15px; }
+  nav a:hover { color: var(--ink); }
+
+  section { padding: 40px 24px 72px; }
+  section + section { border-top: 1px solid var(--border); }
+  .eyebrow { font-family: var(--mono); font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); margin: 0 0 10px; }
+  h2 { font-size: clamp(26px, 3.5vw, 36px); margin: 0 0 14px; letter-spacing: -0.01em; }
+  h3 { font-size: 16px; margin: 0 0 8px; font-weight: 600; }
+  .lead { color: var(--ink-soft); max-width: 62ch; margin: 0 0 28px; font-size: 16px; }
+  .soft { color: var(--ink-soft); }
+  a.link { color: var(--blue); }
+  a.link:hover { text-decoration: none; }
+
+  #top { padding-top: 72px; padding-bottom: 56px; }
+  .badge { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--lime); background: var(--lime-wash); color: var(--lime-text); font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; padding: 6px 12px; border-radius: 999px; margin-bottom: 28px; }
+  .badge::before { content: ''; width: 6px; height: 6px; border-radius: 999px; background: var(--lime-text); }
+  h1 { font-size: clamp(34px, 5.5vw, 58px); line-height: 1.08; letter-spacing: -0.02em; margin: 0 0 20px; font-weight: 700; max-width: 16ch; }
+  .hero-p { font-size: clamp(17px, 2vw, 20px); color: var(--ink-soft); max-width: 52ch; margin: 0 0 36px; }
+  .cta { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 56px; }
+  .btn { padding: 13px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 15px; border: 1px solid var(--border); color: var(--ink); }
+  .btn:hover { border-color: var(--ink); }
+  .btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .btn.primary:hover { opacity: 0.85; }
+
+  .diagram { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 0; border-top: 1px solid var(--border); padding-top: 32px; list-style: none; margin: 0; padding-left: 0; }
+  .diagram li { display: flex; align-items: center; }
+  .diagram span.node { border: 1px solid var(--border); background: var(--bg-alt); padding: 12px 18px; border-radius: 6px; font-family: var(--mono); font-size: 14px; white-space: nowrap; }
+  .diagram li:not(:last-child)::after { content: '→'; color: var(--ink-soft); padding: 0 12px; font-size: 16px; }
+
+  .term { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--bg-alt); }
+  .term-bar { display: flex; border-bottom: 1px solid var(--border); }
+  .term-bar button { padding: 14px 22px; background: transparent; color: var(--ink-soft); border: none; border-right: 1px solid var(--border); border-bottom: 2px solid transparent; font-family: var(--mono); font-size: 14px; cursor: pointer; }
+  .term-bar button[aria-pressed="true"] { background: var(--bg-alt); color: var(--ink); border-bottom-color: var(--blue); }
+  .term-bar .spacer { flex: 1; }
+  .term-bar .copy { border: none; font-family: var(--sans); padding: 0 18px; }
+  .term-bar .copy:hover { color: var(--ink); }
+  pre { margin: 0; padding: 24px; overflow-x: auto; font-family: var(--mono); font-size: 14px; line-height: 1.7; color: var(--ink); }
+  pre.box { border: 1px solid var(--border); border-radius: 10px; background: var(--bg-alt); margin-bottom: 20px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; }
+  code.inline { font-family: var(--mono); background: var(--bg-alt); padding: 2px 6px; border-radius: 4px; }
+
+  .demo-video { display: block; width: 100%; aspect-ratio: 16 / 9; background: #000; border: 1px solid var(--border); border-radius: 10px; }
+  .demo-caption { color: var(--ink-soft); font-size: 14px; margin: 14px 0 24px; }
+  figure { margin: 0; }
+
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; margin-top: 48px; }
+  .steps div { border-top: 1px solid var(--border); padding-top: 16px; }
+  .steps p { color: var(--ink-soft); font-size: 14px; margin: 0; line-height: 1.6; }
+
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; }
+  th, td { text-align: left; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+  th { color: var(--ink-soft); font-weight: 600; background: var(--bg-alt); }
+  td:first-child { font-weight: 600; white-space: nowrap; }
+  td + td { color: var(--ink-soft); }
+  tbody tr:last-child td { border-bottom: none; }
+
+  .faq > div { border-top: 1px solid var(--border); padding: 22px 0; }
+  .faq p { color: var(--ink-soft); margin: 0; font-size: 15px; max-width: 68ch; line-height: 1.65; }
+
+  footer { border-top: 1px solid var(--border); }
+  footer .wrap { padding-top: 36px; padding-bottom: 36px; display: flex; flex-wrap: wrap; gap: 24px; justify-content: space-between; align-items: center; }
+  footer p { font-family: var(--mono); font-size: 13px; color: var(--ink-soft); margin: 0; }
+  footer nav { gap: 20px; }
+  footer nav a { font-size: 14px; }
+
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header>
+  <div class="wrap">
+    <a class="logo" href="#top">ios-anywhere</a>
+    <nav aria-label="Main navigation">
+      <a href="#how-it-works">How it works</a>
+      <a href="#compatibility">Compatibility</a>
+      <a href="#demo">Demo</a>
+      <a href="#install">Get started</a>
+      <a href="https://github.com/rodriguesabner/ios-anywhere">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="content">
+  <section id="top" class="wrap">
+    <div class="badge">Experimental</div>
+    <h1>From your project to the iPhone.</h1>
+    <p class="hero-p">Local Expo and Godot builds on Linux. No Mac, no EAS Build — compile, sign and install with your own toolchain and your own credentials.</p>
+    <div class="cta">
+      <a class="btn primary" href="#install">Get started</a>
+      <a class="btn" href="https://github.com/rodriguesabner/ios-anywhere">View on GitHub</a>
+    </div>
+    <ol class="diagram" role="img" aria-label="Diagram: Project to Build to Sign to IPA to iPhone">
+      <li><span class="node">Project</span></li>
+      <li><span class="node">Build</span></li>
+      <li><span class="node">Sign</span></li>
+      <li><span class="node">IPA</span></li>
+      <li><span class="node">iPhone</span></li>
+    </ol>
+  </section>
+
+  <section id="how-it-works" class="wrap">
+    <p class="eyebrow">How it works</p>
+    <h2>One command, two backends</h2>
+    <p class="lead">Example command — not a build running in the browser. Paths and identities below are fictional.</p>
+    <div class="term">
+      <div class="term-bar">
+        <button type="button" data-engine="expo" aria-pressed="true">expo</button>
+        <button type="button" data-engine="godot" aria-pressed="false">godot</button>
+        <div class="spacer"></div>
+        <button type="button" class="copy" id="copy" aria-label="Copy command">Copy</button>
+      </div>
+      <pre><code id="cmd"></code></pre>
+      <p class="sr" aria-live="polite" id="live"></p>
+    </div>
+    <div class="steps">
+      <div><h3>Explicit project</h3><p>No project is selected implicitly — <code>--project</code> is always required, regardless of the working directory.</p></div>
+      <div><h3>External toolchain</h3><p>Compilers, SDKs and credentials live outside the repository and are configured separately by the user.</p></div>
+      <div><h3>Separate cache</h3><p>Each project uses a separate cache, isolated from the durable toolchain. Delete it only when builds are stopped; the next build regenerates dependencies and products.</p></div>
+    </div>
+  </section>
+
+  <section id="compatibility" class="wrap">
+    <p class="eyebrow">Compatibility</p>
+    <h2>What is validated today</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Path</th><th scope="col">Current state</th></tr></thead>
+        <tbody>
+          <tr><td>Expo</td><td>SDK 54 examples built and tested on iPhone; native dependencies may require adaptations.</td></tr>
+          <tr><td>Godot</td><td>GDScript with engine 4.5.1; examples built and tested on iPhone.</td></tr>
+          <tr><td>Signing</td><td>Valid certificate and provisioning profile, provided by the user.</td></tr>
+          <tr><td>Widgets and extensions</td><td>Not yet part of this CLI's generic flow.</td></tr>
+          <tr><td>Godot C# / GDExtensions</td><td>Not supported — GDScript with the standard engine only.</td></tr>
+          <tr><td>Host system</td><td>Linux x86_64 validated. Windows and macOS have not been validated.</td></tr>
+          <tr><td>App Store</td><td>Experimental; upload is not the same as processing or approval. A precompiled asset catalog is still required.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="soft" style="font-size:14px;margin-top:16px">Test evidence and scope: <a class="link" href="https://github.com/rodriguesabner/ios-anywhere/blob/main/docs/validation.md">docs/validation.md</a>.</p>
+  </section>
+
+  <section id="demo" class="wrap">
+    <p class="eyebrow">Built with ios-anywhere</p>
+    <h2>From the terminal to a real iPhone</h2>
+    <p class="lead">Watch an Expo SDK 54 app compile on Linux, pass signing verification, install on an iPhone, and run on the device.</p>
+    <figure>
+      <video class="demo-video" controls playsinline preload="none" poster="assets/expo-build-install-poster.jpg" aria-label="Continuous Expo build and iPhone installation demonstration" aria-describedby="demo-description">
+        <source src="assets/expo-build-install-demo.mp4" type="video/mp4">
+        <a href="assets/expo-build-install-demo.mp4">Download the demonstration video</a>.
+      </video>
+      <figcaption class="demo-caption" id="demo-description">Recorded October 15, 2026 · 3 min 41 sec · 1080p · Continuous footage, no pauses or cuts. Audio removed for publication. Credential setup is explained; the build and installation run for real. The iPhone screen is mirrored through UxPlay. The sample app's interface is in Portuguese; CLI output is in English.</figcaption>
+    </figure>
+    <details>
+      <summary>Read the demonstration description</summary>
+      <p class="soft">The terminal explains how to obtain credentials, then uses existing signing credentials without displaying their contents. It runs the Expo build command, prepares dependencies, generates the JavaScript bundle and Hermes bytecode, compiles native modules, links, signs, and verifies the IPA. The installation command reaches 100%. On the mirrored iPhone, the user opens the sample app and increments its counter to 17. This demonstrates this sample on this device; it does not establish compatibility with every project or App Store approval.</p>
+    </details>
+    <p><a class="link" href="assets/expo-build-install-demo.mp4" download>Download video (about 21 MB)</a> · <a class="link" href="https://github.com/rodriguesabner/ios-anywhere/blob/main/docs/validation.md">Read validation notes</a></p>
+  </section>
+
+  <section id="install" class="wrap">
+    <p class="eyebrow">Installation</p>
+    <h2>Clone, venv, pip</h2>
+    <p class="lead">Python 3.11+, Node/npm, OpenSSL and Pillow are required. Installing the package does not install SDKs, compilers or Apple credentials — prepare the toolchain separately.</p>
+    <pre class="box"><code>git clone https://github.com/rodriguesabner/ios-anywhere.git
+cd ios-anywhere
+python3 -m venv .venv
+.venv/bin/pip install .
+. .venv/bin/activate
+ios-anywhere --version</code></pre>
+    <pre class="box"><code>ios-anywhere doctor
+ios-anywhere --engine godot doctor</code></pre>
+    <p class="soft" style="font-size:15px;max-width:62ch;margin:0">Prepare the external toolchain as described in <a class="link" href="https://github.com/rodriguesabner/ios-anywhere/blob/main/docs/toolchain.md">docs/toolchain.md</a>.</p>
+  </section>
+
+  <section id="delivery" class="wrap">
+    <p class="eyebrow">Verify, install, submit</p>
+    <h2>Take your IPA to the next step</h2>
+    <p class="lead">Use a device provisioning profile that includes your iPhone for direct installation. Keep certificates, passwords, and profiles outside version control.</p>
+    <pre class="box"><code>ios-anywhere verify /path/to/MyApp-01.ipa
+ios-anywhere install /path/to/MyApp-01.ipa --udid YOUR_UDID</code></pre>
+    <h3>Upload to App Store Connect</h3>
+    <p class="lead">From your app's EAS-configured project, submit a production IPA with an App Store distribution profile and a new build number. Configure the destination app and your Apple authentication in the submission profile.</p>
+    <pre class="box"><code>npx eas-cli login
+npx eas-cli submit --platform ios --profile production --path /path/to/MyApp-AppStore.ipa</code></pre>
+    <p class="soft">This uses EAS Submit as an external upload service, not EAS Build. ios-anywhere has no built-in submit command. An Ad Hoc IPA is not a store submission artifact. Apple processing, TestFlight availability, and App Review remain separate steps; precompiled asset catalogs are still required. See the <a class="link" href="https://github.com/rodriguesabner/ios-anywhere#submit-to-apple">full submission guide</a>.</p>
+  </section>
+
+  <section id="resources" class="wrap">
+    <p class="eyebrow">Documentation and AI</p>
+    <h2>Give your agent the right context</h2>
+    <p class="lead">Use the AI guide alongside the source code. It describes the command contract, toolchain boundaries, credential handling, checks, and validated limitations.</p>
+    <p><a class="link" href="https://github.com/rodriguesabner/ios-anywhere/blob/main/llm.txt">Read llm.txt</a> · <a class="link" href="https://github.com/rodriguesabner/ios-anywhere/blob/main/README.md">Read the documentation</a></p>
+    <p class="soft">Repository links require access while the repository is private. The website itself does not compile apps, receive credentials, or upload binaries.</p>
+  </section>
+
+  <section class="wrap">
+    <p class="eyebrow">FAQ</p>
+    <h2 style="margin-bottom:28px">Limits, no sugarcoating</h2>
+    <div class="faq">
+      <div><h3>Do I need a Mac to run this flow?</h3><p>No, in a prepared Linux environment. The toolchain and SDKs are external prerequisites; the Python package does not install them.</p></div>
+      <div><h3>Does it use EAS Build?</h3><p>No. The Expo backend uses local tools from the Expo ecosystem. Submitting the IPA to a store is a separate step.</p></div>
+      <div><h3>Do I need an Apple certificate?</h3><p>Yes. The CLI signs with your credentials and respects the provisioning profile's restrictions — it does not replace a certificate.</p></div>
+      <div><h3>Does it work with any app?</h3><p>No. The backends cover the documented paths. Projects with different native features need their own validation.</p></div>
+      <div><h3>Can I submit to the App Store?</h3><p>It is experimental. Upload is not the same as processing or approval by Apple, and precompiled asset catalogs are still required.</p></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>ios-anywhere · experimental</p>
+    <nav aria-label="Footer links">
+      <a href="https://github.com/rodriguesabner/ios-anywhere">Repository</a>
+      <a href="https://github.com/rodriguesabner/ios-anywhere/blob/main/docs/toolchain.md">Toolchain</a>
+      <a href="https://github.com/rodriguesabner/ios-anywhere/blob/main/docs/architecture.md">Architecture</a>
+      <a href="https://github.com/rodriguesabner/ios-anywhere/blob/main/docs/validation.md">Validation</a>
+      <a href="https://github.com/rodriguesabner/ios-anywhere/blob/main/llm.txt">AI guide</a>
+      <a href="https://github.com/rodriguesabner/ios-anywhere/blob/main/DISCLAIMER.md">Disclaimer</a>
+      <a href="https://github.com/rodriguesabner/ios-anywhere/blob/main/CONTRIBUTING.md">Contributing</a>
+      <a href="https://github.com/rodriguesabner/ios-anywhere/blob/main/LICENSE">MIT license</a>
+      <a href="https://github.com/rodriguesabner/ios-anywhere/blob/main/THIRD_PARTY.md">Third-party notices</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+  const COMMANDS = {
+    expo: 'ios-anywhere --engine expo \\\n  --project /path/my-app \\\n  --credentials /path/private/credentials.json \\\n  build --output /path/MyApp-01.ipa',
+    godot: 'ios-anywhere --engine godot \\\n  --project /path/my-game \\\n  --bundle-id com.example.mygame \\\n  --credentials /path/private/credentials.json \\\n  build --output /path/MyGame-01.ipa'
+  };
+  let engine = 'expo';
+  const cmd = document.getElementById('cmd'), copy = document.getElementById('copy'), live = document.getElementById('live');
+  const tabs = document.querySelectorAll('[data-engine]');
+  function show() {
+    cmd.textContent = COMMANDS[engine];
+    tabs.forEach(t => t.setAttribute('aria-pressed', t.dataset.engine === engine));
+    copy.textContent = 'Copy'; live.textContent = '';
+  }
+  tabs.forEach(t => t.addEventListener('click', () => { engine = t.dataset.engine; show(); }));
+  copy.addEventListener('click', async () => {
+    let ok = true;
+    try { await navigator.clipboard.writeText(COMMANDS[engine]); } catch { ok = false; }
+    copy.textContent = ok ? 'Copied' : 'Copy manually';
+    live.textContent = ok ? 'Command copied to clipboard' : 'Could not copy automatically';
+    setTimeout(show, 2000);
+  });
+  show();
+</script>
+</body>
+</html>

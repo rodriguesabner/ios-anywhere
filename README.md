@@ -37,6 +37,14 @@ Expo / Godot project → local compilation → signing → IPA → iPhone
 
 See [Validation](docs/validation.md) for evidence and test scope.
 
+## Demo
+
+[![Expo build and installation on a real iPhone](docs/assets/expo-build-install-poster.jpg)](docs/assets/expo-build-install-demo.mp4)
+
+[Watch the continuous demonstration](docs/assets/expo-build-install-demo.mp4): local Expo build, signing verification, installation, and the app running on an iPhone. Recorded October 15, 2026; 3 min 41 sec, without pauses or cuts. Credential setup is explained; existing credentials are used. Audio was removed for sharing. The sample app interface is in Portuguese; CLI output is in English.
+
+The [website source](docs/index.html) includes an embedded player, commands, compatibility notes, and documentation links.
+
 ## Installation
 
 Requires Python 3.11+, Node/npm, OpenSSL, and Pillow. Install from this repository:
