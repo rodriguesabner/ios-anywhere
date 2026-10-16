@@ -50,6 +50,12 @@ def parser():
 
 def execute(argv=None):
     p = parser()
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if not argv and sys.stdin.isatty() and sys.stdout.isatty():
+        from .interactive import arguments
+        argv = arguments()
+        if argv is None:
+            return
     args = p.parse_args(argv)
 
     if args.command == "setup":
