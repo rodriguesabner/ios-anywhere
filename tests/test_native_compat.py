@@ -42,14 +42,17 @@ class NativeCompatTests(unittest.TestCase):
             modulemap.parent.mkdir(parents=True)
             modulemap.write_text('module glog {\n umbrella header "glog-umbrella.h"\n export *\n module * { export * }\n}\n')
             def configure(*args):
-                self.assertEqual(args[3]['CFLAGS'], '-O2 -g0')
-                header.write_text('#define HAVE_PTHREAD 1\n#define HAVE_PREAD 1\n')
+                self.assertEqual(Path(args[0][0]).name, 'clang')
+                self.assertFalse((header.parent.parent / 'configure').exists())
+                self.assertIn('pthread_create', (root / 'glog-ios-probe.c').read_text())
             with patch.object(expo, 'run', side_effect=configure) as run:
                 config = Config(root / 'tools', root / 'cache')
                 expo.prepare_glog(config, root, root, root)
                 expo.prepare_glog(config, root, root, root)
                 run.assert_called_once()
             self.assertTrue(header.read_text().endswith(suffix))
+            self.assertIn('#define HAVE_PTHREAD 1', header.read_text())
+            self.assertIn('#define HAVE_PREAD 1', header.read_text())
             self.assertIn('textual header', modulemap.read_text())
             self.assertNotIn('umbrella header', modulemap.read_text())
             self.assertNotIn('module *', modulemap.read_text())
@@ -59,9 +62,11 @@ class NativeCompatTests(unittest.TestCase):
             root = Path(tmp)
             header = root / 'ios/Pods/glog/src/config.h'
             header.parent.mkdir(parents=True)
-            header.write_text('/* #undef HAVE_PTHREAD */')
-            with patch.object(expo, 'run'), self.assertRaisesRegex(ValueError, 'pthread/pread'):
+            original = '/* #undef HAVE_PTHREAD */\n/* #undef HAVE_PREAD */\n'
+            header.write_text(original)
+            with patch.object(expo, 'run', side_effect=ValueError('Step glog-probe failed')), self.assertRaisesRegex(ValueError, 'glog-probe'):
                 expo.prepare_glog(Config(root, root), root, root, root)
+            self.assertEqual(header.read_text(), original)
 
     def test_fmt_override_guard_is_idempotent(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -103,3 +108,15 @@ class NativeCompatTests(unittest.TestCase):
             (project / 'ios/Pods/fmt').symlink_to(project / 'external')
             with self.assertRaisesRegex(ValueError, 'symlinked Pod'):
                 expo.unlock_cached_pod(project, 'fmt')
+
+    def test_unknown_glog_config_fails_without_modification(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            header = root / 'ios/Pods/glog/src/config.h'
+            header.parent.mkdir(parents=True)
+            original = '#define CUSTOM_GLOG_CONFIG 1\n'
+            header.write_text(original)
+            with patch.object(expo, 'run') as run, self.assertRaisesRegex(ValueError, 'Unrecognized glog'):
+                expo.prepare_glog(Config(root, root), root, root, root)
+            run.assert_not_called()
+            self.assertEqual(header.read_text(), original)
