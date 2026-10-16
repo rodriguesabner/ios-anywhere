@@ -47,7 +47,9 @@ class TargetsTests(unittest.TestCase):
                 path.mkdir(parents=True)
                 info = {'CFBundleIdentifier':'$(PRODUCT_BUNDLE_IDENTIFIER)', 'CFBundleVersion':'7',
                         'NSBonjourServices': ['_$(RCT_METRO_PORT)._tcp']}
-                if name != 'App': info['NSExtension'] = {'NSExtensionPointIdentifier':'com.apple.widgetkit-extension'}
+                if name != 'App':
+                    info.pop('CFBundleIdentifier')
+                    info['NSExtension'] = {'NSExtensionPointIdentifier':'com.apple.widgetkit-extension'}
                 (path/'Info.plist').write_bytes(plistlib.dumps(info))
                 binary = job/'build/products'/name/name
                 binary.parent.mkdir(parents=True)

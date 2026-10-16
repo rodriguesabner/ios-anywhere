@@ -774,6 +774,18 @@ def stage_target(job, app, libraries, dest):
         )
 
     info = json.loads(raw)
+    # Generated extension plists rely on Xcode to supply these product settings.
+    for key, value in {
+        "CFBundleIdentifier": settings.get("PRODUCT_BUNDLE_IDENTIFIER"),
+        "CFBundleName": name,
+        "CFBundleInfoDictionaryVersion": "6.0",
+        "CFBundleShortVersionString": variables["MARKETING_VERSION"],
+        "CFBundleVersion": str(variables["CURRENT_PROJECT_VERSION"]),
+    }.items():
+        if value is not None:
+            info.setdefault(key, value)
+    if not info.get("CFBundleIdentifier"):
+        raise ValueError("Missing bundle identifier for target " + name)
 
     info.update(
         CFBundleExecutable=name,

@@ -50,4 +50,28 @@ SDK-free regression tests cover target classification, dependency cycles/missing
 targets, per-target link inputs, C-source compilation dispatch, two embedded
 extensions, widget resources, plist isolation, missing profiles and App Group
 mismatch. They do not prove a native build, installation, or widget rendering.
-See the PR for the observed full-build attempt and remaining blockers.
+The observed native build and its limits are recorded below.
+
+## Observed local build (2026-10-16)
+
+A Qadra checkout at `47c1dd1` completed the native pipeline with the installed
+Linux Swift toolchain and SDK 27.0. Dependencies, prebuild, CocoaPods, main JS and
+widget JS were generated in an isolated project copy. Native products were
+cleared for the SDK 27 pass; 41 Swift targets plus the JSI framework were built,
+and all 896 C/Objective-C/C++/assembly jobs completed with zero cache hits.
+Both app and extension linked, staged, signed and passed the existing IPA
+cryptographic verifier. The four generated widget source files were included in
+the extension's Swift invocation. ZIP and signature inspection confirmed one
+embedded extension, both nested widget resource bundles, matching versions and
+the required App Group in both signed entitlement sets.
+
+This was an iterative native build: after diagnosing SDK selection, JSI headers,
+per-file Objective-C++ flags and generated plist defaults, the affected stages
+were rerun. It was not one uninterrupted CLI invocation, and no previous app or
+extension executable was used. The installed toolchain and package-supplied
+vendor frameworks were reused. No signed IPA or private log is published here.
+
+The resulting app was **not installed or run on a device**. Widget rendering,
+Apple certificate trust/revocation, TestFlight, App Review and store distribution
+remain unverified. The verifier establishes local signature/resource integrity,
+not acceptance by Apple. GitHub execution of the Qadra workflow was not tested.
