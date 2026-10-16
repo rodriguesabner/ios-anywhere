@@ -374,15 +374,18 @@ def patch_splash(project):
     if 'ofType: "storyboardc"' in text:
         return
 
-    marker = "    if let vc = UIStoryboard(name: splashScreenFilename, bundle: nil).instantiateInitialViewController() {"
+    names = ('splashScreenFilename', '"SplashScreen"')
+    name = next((name for name in names if f'    if let vc = UIStoryboard(name: {name}, bundle: nil).instantiateInitialViewController() {{' in text), None)
 
-    if marker not in text:
+    if name is None:
         raise ValueError("Unrecognized splash screen implementation for the Linux build.")
+
+    marker = f"    if let vc = UIStoryboard(name: {name}, bundle: nil).instantiateInitialViewController() {{"
 
     # shortcut: no ibtool on Linux; use UIKit launch resources until storyboard compilation is supported.
     text = text.replace(
         marker,
-        '    guard Bundle.main.path(forResource: splashScreenFilename, ofType: "storyboardc") != nil else { return }\n'
+        f'    guard Bundle.main.path(forResource: {name}, ofType: "storyboardc") != nil else {{ return }}\n'
         + marker,
     )
 
