@@ -179,6 +179,23 @@ The Ad Hoc IPA from the steps above is for device testing. Store submission need
 
 [Watch the demo](docs/assets/expo-build-install-demo.mp4): local build, signing, installation, and an Expo app running on an iPhone.
 
+## Reproduced projects
+
+Built on Linux and tested on a real iPhone:
+
+| Project | Engine | Result |
+| --- | --- | --- |
+| [Truck Town](https://github.com/godotengine/godot-demo-projects/tree/master/3d/truck_town) | Godot | Built on another PC; installed and running. |
+| [Expo Meatball Animation](https://github.com/rit3zh/expo-meatball-animation) | Expo SDK 53 + Skia | Built on another PC; installed and initial UI rendered. |
+| [Expo counter](examples/expo-counter) | Expo SDK 54 | Built, installed, and counter tested on an iPhone. |
+
+<p>
+  <img src="docs/assets/reproduced/godot-truck-town.png" alt="Truck Town running on an iPhone" width="540">
+  <img src="docs/assets/reproduced/expo-meatball-open.png" alt="Expo Meatball Animation open on an iPhone" width="250">
+</p>
+
+[More screenshots, test dates, and scope →](docs/reproduced-projects.md)
+
 <a id="validation-status"></a>
 
 ## Compatibility
@@ -186,6 +203,7 @@ The Ad Hoc IPA from the steps above is for device testing. Store submission need
 | Engine / workflow | Status |
 | --- | --- |
 | Godot 4.5.1 / GDScript | Guided setup; Truck Town built on another PC and ran on an iPhone. |
+| Expo SDK 53 + Skia | Meatball Animation built on another Linux PC, installed and opened on an iPhone. |
 | Expo SDK 54 examples | Experimental Ubuntu 24.04 setup; examples built and tested on an iPhone. Native dependencies may need adaptation. |
 | Widgets and extensions | Not supported by the generic CLI workflow. |
 | App Store | Upload tested; Apple processing, review, and publication remain unverified. Precompiled asset catalogs are required. |
@@ -200,6 +218,7 @@ The second-PC test required manually installing the USB utilities, now included 
 - [App Store submission](docs/submission.md)
 - [Toolchain reference](docs/toolchain.md)
 - [Architecture](docs/architecture.md)
+- [Reproduced projects and screenshots](docs/reproduced-projects.md)
 - [Validation](docs/validation.md)
 - [AI agent guide](llm.txt)
 
