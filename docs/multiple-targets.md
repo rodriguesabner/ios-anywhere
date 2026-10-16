@@ -28,6 +28,14 @@ uses bundle identifiers, not JSON entry names. The existing recursive signer and
 IPA verifier process both the app and its extensions. Credentials and generated
 outputs must remain outside version control.
 
+## SDK selection
+
+Set `"sdk": "iPhoneOS27.0.sdk"` in the local configuration to use an already
+installed SDK under `toolchain/sdks` for compilation and linking. The default
+remains SDK 26.4 for compilation and 26.5 for linking. Qadra’s resolved OpenIAP
+3.4.0 uses StoreKit APIs absent from SDK 26.4; its validation uses the existing
+SDK 27.0. No SDK download or installation is performed.
+
 ## Limits and validation
 
 This remains an experimental Linux backend. Asset catalogs and storyboards use

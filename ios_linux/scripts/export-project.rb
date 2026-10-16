@@ -40,7 +40,7 @@ ENV['CONFIGURATION_BUILD_DIR'] = ENV['PODS_CONFIGURATION_BUILD_DIR']
 ENV['PODS_ROOT'] = (
   project.path.basename.to_s == 'Pods.xcodeproj' ? project.project_dir : project.project_dir + 'Pods'
 ).to_s
-ENV['SDKROOT'] = File.join(ENV.fetch('IOS_LINUX_TOOLCHAIN'), 'sdks/iPhoneOS26.4.sdk')
+ENV['SDKROOT'] = File.join(ENV.fetch('IOS_LINUX_TOOLCHAIN'), 'sdks', ENV['IOS_LINUX_SDK'].to_s.empty? ? 'iPhoneOS26.4.sdk' : ENV['IOS_LINUX_SDK'])
 ENV['PLATFORM_NAME'] = 'iphoneos'
 ENV['EFFECTIVE_PLATFORM_NAME'] = '-iphoneos'
 

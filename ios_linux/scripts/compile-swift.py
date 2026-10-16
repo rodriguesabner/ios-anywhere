@@ -38,7 +38,7 @@ for name in sys.argv[1:]:
         "-target",
         "arm64-apple-ios" + str(s.get("IPHONEOS_DEPLOYMENT_TARGET") or "16.4"),
         "-sdk",
-        str(toolroot / "sdks/iPhoneOS26.4.sdk"),
+        str(toolroot / "sdks" / (os.environ.get("IOS_LINUX_SDK") or "iPhoneOS26.4.sdk")),
         "-resource-dir",
         str(toolroot / "darwin-resource"),
         "-I",

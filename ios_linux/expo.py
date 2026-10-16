@@ -654,7 +654,8 @@ def compile_and_link(config, job, selected, apps):
     import shlex
 
     frameworks = list(pods.rglob("*.xcframework/ios-arm64/*.framework"))
-    sdk = config.toolchain / "sdks/iPhoneOS26.5.sdk"
+    sdk = config.toolchain / "sdks" / (config.sdk or "iPhoneOS26.5.sdk")
+    sdk_version = json.loads((sdk / "SDKSettings.json").read_text())["Version"] if config.sdk else "26.5"
     for app in apps:
         minimum = str(app["settings"].get("IPHONEOS_DEPLOYMENT_TARGET") or "16.4")
         dependencies = target_dependencies(selected, app)
@@ -691,7 +692,7 @@ def compile_and_link(config, job, selected, apps):
             "-platform_version",
             "ios",
             minimum,
-            "26.5",
+            sdk_version,
             "--error-limit=0",
             "-syslibroot",
             sdk,

@@ -27,6 +27,7 @@ class Config:
     llvm_ar: str = "llvm-ar"
     installer: str = "ideviceinstaller"
     installer_lib: str = ""
+    sdk: str = ""
 
     @classmethod
     def load(cls, path=None):
@@ -47,6 +48,7 @@ class Config:
             data.get("llvm_ar", "llvm-ar"),
             data.get("installer", "ideviceinstaller"),
             data.get("installer_lib", ""),
+            data.get("sdk", ""),
         )
 
     def env(self):
@@ -57,6 +59,7 @@ class Config:
             IOS_LINUX_TOOLCHAIN=str(tools),
             IOS_LINUX_SIGNING_MODULE=str(tools / "signing/node_modules/zsign-wasm"),
             PYTHONOPTIMIZE="0",
+            IOS_LINUX_SDK=self.sdk,
         )
 
     def doctor(self, engine):
@@ -71,8 +74,8 @@ class Config:
                 "swift/usr/bin/swiftc",
                 "ruby/usr/bin/ruby3.2",
                 "gems/bin/pod",
-                "sdks/iPhoneOS26.4.sdk/SDKSettings.json",
-                "sdks/iPhoneOS26.5.sdk/SDKSettings.json",
+                "sdks/" + (self.sdk or "iPhoneOS26.4.sdk") + "/SDKSettings.json",
+                "sdks/" + (self.sdk or "iPhoneOS26.5.sdk") + "/SDKSettings.json",
                 "darwin-resource/iphoneos/Cxx.swiftmodule/arm64-apple-ios.swiftinterface",
                 "darwin-resource/shims",
                 "apple-macros/OpenAppleMacrosServer",
@@ -87,6 +90,11 @@ class Config:
                 "godot/libMoltenVK.a",
                 "sdks/iPhoneOS18.5.sdk/SDKSettings.json",
             ]
+
+        if self.sdk:
+            if Path(self.sdk).name != self.sdk or not self.sdk.endswith(".sdk"):
+                raise ValueError("sdk must name an installed SDK directory under toolchain/sdks.")
+            required.append("sdks/" + self.sdk + "/SDKSettings.json")
 
         errors = [
             f"Missing: {self.toolchain / name}"

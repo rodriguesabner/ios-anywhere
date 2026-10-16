@@ -168,3 +168,14 @@ class TargetsTests(unittest.TestCase):
                 command,_=compiler['command'](extension,{'path':str(root/'Widget.mm')})
             self.assertIn('-fapplication-extension',command)
             self.assertEqual(command[command.index('-target')+1],'arm64-apple-ios18.0')
+
+    def test_sdk_override_uses_installed_sdk_without_changing_defaults(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            path=root/'config.json'
+            path.write_text(json.dumps({'toolchain':'tools','cache':'cache','sdk':'iPhoneOS27.0.sdk'}))
+            config=Config.load(path)
+            self.assertEqual(config.env()['IOS_LINUX_SDK'],'iPhoneOS27.0.sdk')
+            self.assertEqual(Config(root/'tools',root/'cache').env()['IOS_LINUX_SDK'],'')
+            with self.assertRaisesRegex(ValueError,'sdk must name'):
+                Config(root/'tools',root/'cache',sdk='../outside.sdk').doctor('expo')
