@@ -11,38 +11,21 @@
 ![Python: 3.11+](https://img.shields.io/badge/python-3.11%2B-3776ab)
 
 [![Unit tests (live CI on main)](https://github.com/rodriguesabner/ios-anywhere/actions/workflows/tests.yml/badge.svg?branch=main&event=push)](https://github.com/rodriguesabner/ios-anywhere/actions/workflows/tests.yml?query=branch%3Amain)
-[![Expo device: documented manual test](https://img.shields.io/badge/Expo_device-documented_manual_test-007ec6)](docs/validation.md#device-tests)
-[![Godot device: documented manual test](https://img.shields.io/badge/Godot_device-documented_manual_test-007ec6)](docs/validation.md#device-tests)
-[![Apple upload: documented manual test](https://img.shields.io/badge/Apple_upload-documented_manual_test-007ec6)](docs/validation.md#apple-upload-example-cs-callouts)
-
-[Website](https://rodriguesabner.github.io/ios-anywhere/) · [Quick start](#installation) · [Guided setup](docs/setup.md) · [Expo](#expo) · [Godot](#godot) · [Compatibility](#compatibility) · [Validation status](#validation-status) · [Signing setup](#signing-setup-and-device-preparation) · [Submit to Apple](#submit-to-apple) · [Documentation](#documentation)
+[Website](https://rodriguesabner.github.io/ios-anywhere/) · [Get started](#installation) · [Demo](#demo) · [Documentation](#documentation)
 
 </div>
 
----
+Build, sign, and install iOS apps locally on Linux. Supports **Godot** and **Expo**, with valid Apple signing credentials. No Mac or EAS Build is needed to run the local build workflow.
 
-An experimental CLI to compile, sign, and install iOS apps **locally on Linux**, with **Expo** and **Godot** backends. Builds run without a Mac or EAS Build. The Expo backend still uses the local Expo CLI for prebuild and JavaScript bundling.
+**Experimental:** start with Godot 4.5.1 / GDScript for the guided setup. Expo requires a manually prepared toolchain. Linux x86_64 is the tested host platform; not every project is supported.
 
-Each build receives an explicit project, its own credentials, and an output path. Compilers, SDKs, and caches live outside this repository. No previous application is required as a template.
+<a id="installation"></a>
 
-```text
-Install CLI → prepare tools → build your project → signed IPA → iPhone
-```
+## 1. Install the CLI
 
-## Installation
-
-Choose your setup path:
-
-| Your project | Toolchain setup | Starting point |
-| --- | --- | --- |
-| Godot 4.5.1 / GDScript | Experimental guided installer | `ios-anywhere setup` |
-| Expo / React Native | Manual preparation | [Expo toolchain guide](docs/installation.md#2-prepare-the-external-toolchain) |
-| Already configured | Reuse your installation | `ios-anywhere --engine godot doctor` or `--engine expo doctor` |
-
-### 1. Install the CLI
+On Ubuntu 24.04 / Linux x86_64:
 
 ```sh
-# Ubuntu 24.04 / Linux x86_64
 sudo apt-get update
 sudo apt-get install -y git python3 python3-venv python3-pip openssl curl unzip
 
@@ -51,220 +34,149 @@ cd ios-anywhere
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install .
-ios-anywhere --version
 ```
 
-Requires Python 3.11+. This installs the CLI, not the compiler or SDKs. For guided setup, use Python 3.11.8+ or 3.12+. Expo users also need a compatible Node.js/npm installation.
+Use Python 3.11.8+ or 3.12+. In a new terminal, activate this virtual environment again before using the CLI.
 
-### 2. Prepare your tools
+## 2. Set up your build tools
 
-**Godot — guided setup.** On a new Linux x86_64 installation, run this before creating a configuration file:
+**Godot:** have at least **8 GiB free**, then run:
 
 ```sh
 ios-anywhere setup
+ios-anywhere --engine godot doctor
 ```
 
-The assistant walks through SDK selection and installs the compiler, linker, Godot libraries, and signer. It checks native linking before saving your configuration.
+Follow the prompts to install the compiler, linker, Godot libraries, signer, and iPhone USB utilities. Choose your local iPhoneOS 18.5 SDK or the unofficial SDK mirror. The mirror is not Apple-authenticated; Apple SDK terms still apply. [Setup details and troubleshooting →](docs/setup.md)
 
-- **SDK source:** import a local iPhoneOS 18.5 SDK or explicitly choose the unofficial mirror at a pinned revision.
-- **Downloads:** release archives are checksum-verified; partial downloads can resume.
-- **Disk:** at least 8 GiB free before setup, plus space for system packages and builds.
-- **Existing installations:** preserved. Use `doctor` to check them; setup refuses to overwrite their paths.
+**Expo:** follow the [manual toolchain guide](docs/installation.md#2-prepare-the-external-toolchain), then run `ios-anywhere --engine expo doctor`. The guided setup above only prepares Godot.
 
-For unattended setup with the unofficial SDK mirror:
+<a id="signing-setup-and-device-preparation"></a>
 
-```sh
-ios-anywhere setup --sdk-source mirror --yes
-```
+## 3. Prepare your signing credentials
 
-`--yes` also approves installation of missing apt packages; sudo may be required. The mirror is not Apple-authenticated, and Apple SDK terms still apply. See [guided setup](docs/setup.md) for local SDK import, custom paths, sources, and cleanup.
-
-**Expo — manual setup.** Follow the [toolchain installation guide](docs/installation.md#2-prepare-the-external-toolchain), configure its paths, then run:
+Connect and unlock your iPhone, accept **Trust This Computer**, and get its UDID:
 
 ```sh
-ios-anywhere --engine expo doctor
-```
-
-`doctor` checks prerequisites without installing anything. `--config /path/to/config.json` selects a specific installation. Existing configurations remain supported; see [configuration details](docs/installation.md#configuration-compatibility).
-
-**Validation:** on October 16, 2026, a user completed setup on another PC, built and verified Godot’s [Truck Town demo](https://github.com/godotengine/godot-demo-projects/tree/master/3d/truck_town), installed it on an iPhone, and confirmed it ran. That run required manually installing the USB utilities; setup now includes them. The revised package installation has automated coverage but has not yet been rerun on that PC. This is one successful Godot project, not universal compatibility.
-
-### 3. Add your signing credentials and build
-
-Prepare your certificate and provisioning profile using the [signing guide](docs/signing.md), then follow the [Godot](#godot) or [Expo](#expo) build command below. Setup does not need credentials; signing an IPA does. Installation on a device and submission to Apple are separate steps.
-
-## Signing setup and device preparation
-
-For **Godot without an Expo project**, follow [Create your own App ID and Ad Hoc profile](docs/signing.md#godot-create-a-profile-for-your-own-bundle-id), including the adapted provisioning script used during development. `eas credentials` must run inside an EAS-configured Expo project, not this repository or a Godot folder.
-
-### Download existing EAS credentials
-
-Run in your app's EAS-configured project:
-
-```sh
-npx eas-cli login
-npx eas-cli credentials --platform ios
-```
-
-Select your build profile, then the credentials JSON download option. Keep the `.p12`, password, profile, and JSON outside the repository; use `--credentials /private/credentials.json` when building. Never commit them.
-
-### Get the iPhone UDID
-
-```sh
-# Ubuntu; connect and unlock the iPhone, then accept its trust prompt
-sudo apt-get install libimobiledevice-utils usbmuxd ideviceinstaller
 idevice_id -l
-
-UDID="YOUR_DEVICE_UDID"
-idevicepair -u "$UDID" pair
-idevicepair -u "$UDID" validate
 ```
 
-**Use an Ad Hoc profile that includes this UDID, not an App Store profile.** If needed, register the device and refresh/download the profile before building; the [signing guide](docs/signing.md) covers those steps and new credentials.
+In your Apple Developer account, register your app's **bundle ID** and the iPhone's **UDID**, then generate an **Ad Hoc provisioning profile** using your distribution certificate and that device.
 
-## Expo
+Keep these three files together in a private folder outside the repository:
 
-```sh
-ios-anywhere --engine expo \
-  --project /path/to/my-app \
-  --credentials /private/credentials.json \
-  build --output /path/to/MyApp-01.ipa
+```text
+$HOME/private-signing/my-app/
+├── credentials.json
+├── distribution.p12
+└── app.mobileprovision
 ```
 
-The project needs `package.json`, `package-lock.json`, and an Expo configuration with `ios.bundleIdentifier`. The CLI creates an isolated copy, runs `npm ci`, iOS prebuild and CocoaPods, exports the app's build graphs, compiles native modules, generates Hermes bytecode, and signs the IPA. The original source is not modified. Project scripts and npm packages execute during this process: use trusted sources.
-
-## Godot
-
-```sh
-ios-anywhere --engine godot \
-  --project /path/to/my-game \
-  --bundle-id com.example.mygame \
-  --credentials /private/credentials.json \
-  build --output /path/to/MyGame-01.ipa
-```
-
-The source directory must contain `project.godot`. The backend exports a fresh PCK, links the iOS arm64 engine installed in the toolchain, and applies the project's identity, name, orientation, and PNG icon. Match editor and engine versions; the validated environment uses Godot 4.5.1.
-
-## Verify and install
-
-```sh
-IOS_LINUX_UDID="$UDID" ios-anywhere verify /path/to/MyApp-01.ipa
-ios-anywhere install /path/to/MyApp-01.ipa --udid "$UDID"
-```
-
-## Submit to Apple
-
-Upload an existing production IPA through **EAS Submit**, from your app's EAS-configured project directory:
-
-```sh
-npx eas-cli login
-npx eas-cli submit --platform ios --profile production --path /path/to/MyApp-AppStore.ipa
-```
-
-Configure the destination in the app's `eas.json`, merging this section with any existing configuration:
+Use this structure for `credentials.json`, replacing the password locally:
 
 ```json
 {
-  "submit": {
-    "production": {
-      "ios": {
-        "ascAppId": "YOUR_NUMERIC_APP_STORE_CONNECT_APP_ID"
-      }
+  "ios": {
+    "provisioningProfilePath": "app.mobileprovision",
+    "distributionCertificate": {
+      "path": "distribution.p12",
+      "password": "YOUR_P12_PASSWORD"
     }
   }
 }
 ```
 
-Use an App Store distribution certificate/profile and a new build number for that app version. An Ad Hoc IPA intended for direct installation is not a store submission artifact. Complete Apple authentication when prompted, or configure your own App Store Connect API key using `ascApiKeyPath`, `ascApiKeyId`, and `ascApiKeyIssuerId` in the submission profile. Keep keys outside version control.
+**Need to create the profile?** Follow the [Apple portal steps or provisioning script](docs/signing.md#godot-create-a-profile-for-your-own-bundle-id). This step is required; setup does not create Apple credentials.
 
-This uses Expo's submission service, not EAS Build. The CLI has no built-in `submit` command. Uploading sends the binary to App Store Connect; Apple processing, TestFlight availability, and submission for App Review are separate steps. Asset catalogs and current Apple requirements must still be satisfied.
+**Already have EAS credentials?** Run `npx eas-cli credentials --platform ios` inside your EAS-configured **Expo project**, then download the credentials. It does not work inside a Godot project or this CLI repository. [Full signing guide →](docs/signing.md)
 
-**Upload has been tested:** the CS Callouts experiment sent an IPA with a Linux-built executable to Apple, using an asset catalog reused from an EAS build of the same app. See the [documented upload result](docs/validation.md#apple-upload-example-cs-callouts). Apple processing, TestFlight availability, App Review, and publication have not been verified by that result.
+## 4. Build your IPA
 
-Sources: [EAS Submit for iOS](https://docs.expo.dev/submit/ios/), [submitting an existing IPA](https://docs.expo.dev/deploy/submit-to-app-stores/).
+Choose your engine and replace the example paths. Use a new output filename for each build.
 
-## Compatibility
+<a id="godot"></a>
 
-| Workflow | Current status |
-| --- | --- |
-| Expo | SDK 54 examples built and tested on iPhone; native dependencies may need adaptation. |
-| Godot | GDScript with engine 4.5.1; examples built and tested on iPhone. |
-| Signing | Valid certificate and provisioning profile supplied by the user. |
-| Widgets and extensions | Not supported by the generic CLI workflow yet. |
-| App Store | Upload tested with CS Callouts; Apple processing and approval remain unverified. Precompiled assets are still required. |
-| Host systems | Linux x86_64 validated. Windows and macOS have not been validated. |
+**Godot** — the project folder must contain `project.godot`:
 
-See [Validation](docs/validation.md) for evidence and test scope.
+```sh
+ios-anywhere --engine godot \
+  --project "$HOME/my-game" \
+  --bundle-id com.example.mygame \
+  --credentials "$HOME/private-signing/my-app/credentials.json" \
+  build --output "$HOME/MyApp-01.ipa"
+```
 
-## Validation status
+Replace `com.example.mygame` with the **exact bundle ID authorized by your profile**. Use Godot 4.5.1 / GDScript without C# or GDExtensions.
 
-- **Unit tests (live CI):** the badge reports the latest push run on `main` of the [SDK-free test workflow](.github/workflows/tests.yml). It installs the Python package, runs the unit suite, and checks Python compilation on Linux. It does not build or sign an IPA. Until the workflow has run on `main`, there is no CI pass to claim.
-- **Expo and Godot (documented manual tests):** minimal Expo SDK 54 and Godot 4.5.1 examples were built, signed, installed, and opened on an iPhone on October 15, 2026. These static badges link to [the recorded scope](docs/validation.md#device-tests); they do not automatically revalidate later commits or other apps.
-- **Apple upload (documented manual test):** CS Callouts was uploaded with a Linux-built executable and `Assets.car` reused from an EAS build of the same app. [This evidence](docs/validation.md#apple-upload-example-cs-callouts) covers upload only; Apple processing, TestFlight, App Review, and publication remain unverified.
+<a id="expo"></a>
 
-These indicators describe separate checks, not a percentage of completion or a guarantee of App Store readiness.
+**Expo** — the project needs `package.json`, `package-lock.json`, and `ios.bundleIdentifier` in its Expo configuration:
+
+```sh
+ios-anywhere --engine expo \
+  --project "$HOME/my-app" \
+  --credentials "$HOME/private-signing/my-app/credentials.json" \
+  build --output "$HOME/MyApp-01.ipa"
+```
+
+The CLI builds an isolated copy and publishes the IPA only after signing and verification. Build trusted projects: their scripts and dependencies execute locally.
+
+## 5. Install on your iPhone
+
+Keep the iPhone connected and unlocked. Replace the UDID below with the value from step 3:
+
+```sh
+UDID="YOUR_IPHONE_UDID"
+idevicepair -u "$UDID" pair
+
+IOS_LINUX_UDID="$UDID" ios-anywhere verify "$HOME/MyApp-01.ipa"
+ios-anywhere install "$HOME/MyApp-01.ipa" --udid "$UDID"
+```
+
+Open the app on your iPhone. Installing with the same bundle ID updates the existing app.
+
+**Have fun!** 🎉
+
+<a id="submit-to-apple"></a>
+
+## Publish to the App Store
+
+For an existing **App Store-signed IPA**, run this inside your EAS-configured Expo project:
+
+```sh
+npx eas-cli submit --platform ios --profile production --path /path/to/MyApp-AppStore.ipa
+```
+
+The Ad Hoc IPA from the steps above is for device testing. Store submission needs the appropriate profile, a unique build number, and compliant assets. [Submission configuration and requirements →](docs/submission.md)
 
 ## Demo
 
 [![Expo build and installation on a real iPhone](docs/assets/expo-build-install-poster.jpg)](docs/assets/expo-build-install-demo.mp4)
 
-[Watch the continuous demonstration](docs/assets/expo-build-install-demo.mp4): local Expo build, signing verification, installation, and the app running on an iPhone. Recorded October 15, 2026; 3 min 41 sec, without pauses or cuts. Credential setup is explained; existing credentials are used. Audio was removed for sharing. The sample app interface is in Portuguese; CLI output is in English.
+[Watch the demo](docs/assets/expo-build-install-demo.mp4): local build, signing, installation, and an Expo app running on an iPhone.
 
-The [website source](docs/index.html) includes an embedded player, commands, compatibility notes, and documentation links.
+<a id="validation-status"></a>
 
-## Project layout
+## Compatibility
 
-- `ios_linux/`: CLI, configuration, and backends.
-- `ios_linux/scripts/`: shared compilation, graph export, and signing scripts.
-- `examples/`: independent minimal Expo and Godot apps; change the Expo identity before signing.
-- `tests/`: tests requiring no certificates, device, or Apple SDKs.
-- External toolchain: `~/.local/share/ios-anywhere/toolchain`.
-- Build cache: the config's `cache` path (`~/.cache/ios-anywhere` in the example config; `build-cache` beside the toolchain for guided setup). Contains source copies, resources, products, and logs. Do not share it: projects and configurations may contain private data.
-- Local configuration: `~/.config/ios-anywhere/config.json`.
+| Engine / workflow | Status |
+| --- | --- |
+| Godot 4.5.1 / GDScript | Guided setup; Truck Town built on another PC and ran on an iPhone. |
+| Expo SDK 54 examples | Manual toolchain; examples built and tested on an iPhone. Native dependencies may need adaptation. |
+| Widgets and extensions | Not supported by the generic CLI workflow. |
+| App Store | Upload tested; Apple processing, review, and publication remain unverified. Precompiled asset catalogs are required. |
 
-No project is selected implicitly. Builds do not depend on the working directory or clone location. CocoaPods generates absolute paths in the cache; rebuild after moving it. Do not move or delete the toolchain or cache during a build.
-
-## Limitations
-
-- Experimental, validated on Linux x86_64; not a universal Xcode replacement.
-- Expo: SDK 54 validated with a standard Swift AppDelegate. Extensions, widgets, custom native phases, storyboards, and AppDelegates require additional support. Earlier project-specific widget work is not part of this distribution.
-- Swift/C++ uses a separate compatibility overlay that must be rebuilt after the relevant CLI upgrade. Expo targets iOS 16.4 minimum; older devices have not been tested. Godot targets iOS 14.0 minimum, also without testing on older devices.
-- Godot: GDScript and the standard engine without external plugins. C# and GDExtensions are rejected. This backend sets version/build to 1.0/1. Review game-specific privacy requirements before distribution.
-- App Store: asset catalogs must already be compiled. Packaging preserves `Assets.car` and icons in `build/app-resources`; generating PNGs alone does not meet Apple's asset catalog requirement.
-- The toolchain is installed separately. Apple SDKs, external libraries, and credentials are not distributed in this repository.
-
-## Development
-
-Install the package first (`python3 -m pip install .`) and ensure Node.js is on PATH; the Expo module-resolution test invokes Node. Then run the same SDK-free checks as CI:
-
-```sh
-python3 -m unittest discover -s tests -v
-python3 -m compileall -q ios_linux tests
-```
-
-See [Validation](docs/validation.md) for real-world checks and [Architecture](docs/architecture.md) for boundaries between source, tools, and builds.
-
-## FAQ
-
-**Do I need a Mac to run this workflow?** Builds run in the prepared Linux environment. You still need compatible tools and SDKs. `pip install` installs the CLI; `ios-anywhere setup` prepares the Godot toolchain. Expo preparation remains manual.
-
-**Can setup download the SDK for me?** Yes, if you explicitly select the unofficial pinned mirror. You can also import a local SDK. See [SDK choices](docs/setup.md#sdk-choices) for sources and limitations.
-
-**Do I need EAS Build?** No. The Expo backend uses local Expo ecosystem tools. Store submission is a separate step.
-
-**Does it work with every app?** No. Projects with different native requirements need their own validation.
-
-**Can I skip Apple signing credentials?** No. The CLI signs with your credentials and respects provisioning profile restrictions.
+The second-PC test required manually installing the USB utilities, now included in setup. The revised setup has automated coverage but has not been rerun end to end on that PC. CI checks code, not device execution. [Test evidence and limits →](docs/validation.md)
 
 ## Documentation
 
-- [Guided Godot setup](docs/setup.md)
-- [Installation details](docs/installation.md)
-- [Signing credentials and device setup](docs/signing.md)
-- [Toolchain setup](docs/toolchain.md)
-- [Architecture and project isolation](docs/architecture.md)
-- [Validation and device tests](docs/validation.md)
-- [Third-party components](THIRD_PARTY.md)
+- [Setup and troubleshooting](docs/setup.md)
+- [Signing credentials and profile creation](docs/signing.md)
+- [Manual installation and limitations](docs/installation.md)
+- [App Store submission](docs/submission.md)
+- [Toolchain reference](docs/toolchain.md)
+- [Architecture](docs/architecture.md)
+- [Validation](docs/validation.md)
 - [AI agent guide](llm.txt)
 
 ## Disclaimer

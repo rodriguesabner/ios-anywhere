@@ -137,3 +137,24 @@ Without `--config`, the CLI first looks for `ios-anywhere/config.json` under `XD
 The quick-start copy command leaves both existing configurations untouched and does not create a new default that would hide a legacy configuration. No automatic migration occurs. If you manually copy a legacy configuration, check any relative paths because they are resolved relative to the selected JSON file.
 
 For new installations, the example uses `~/.local/share/ios-anywhere/toolchain` and `~/.cache/ios-anywhere`. These are configured values, not discovery paths: existing JSON files keep their original toolchain and cache locations. Do not move or redownload a working toolchain merely to rename it. The `ios-linux` command alias, `ios_linux` Python module, and `IOS_LINUX_*` environment variables remain supported.
+
+## Project layout
+
+- `ios_linux/`: CLI, configuration, and backends.
+- `ios_linux/scripts/`: shared compilation, graph export, and signing scripts.
+- `examples/`: independent minimal Expo and Godot apps; change the Expo identity before signing.
+- `tests/`: tests requiring no certificates, device, or Apple SDKs.
+- External toolchain: `~/.local/share/ios-anywhere/toolchain`.
+- Build cache: the config's `cache` path (`~/.cache/ios-anywhere` in the example config; `build-cache` beside the toolchain for guided setup). Contains source copies, resources, products, and logs. Do not share it: projects and configurations may contain private data.
+- Local configuration: `~/.config/ios-anywhere/config.json`.
+
+No project is selected implicitly. Builds do not depend on the working directory or clone location. CocoaPods generates absolute paths in the cache; rebuild after moving it. Do not move or delete the toolchain or cache during a build.
+
+## Limitations
+
+- Experimental, validated on Linux x86_64; not a universal Xcode replacement.
+- Expo: SDK 54 validated with a standard Swift AppDelegate. Extensions, widgets, custom native phases, storyboards, and AppDelegates require additional support. Earlier project-specific widget work is not part of this distribution.
+- Swift/C++ uses a separate compatibility overlay that must be rebuilt after the relevant CLI upgrade. Expo targets iOS 16.4 minimum; older devices have not been tested. Godot targets iOS 14.0 minimum, also without testing on older devices.
+- Godot: GDScript and the standard engine without external plugins. C# and GDExtensions are rejected. This backend sets version/build to 1.0/1. Review game-specific privacy requirements before distribution.
+- App Store: asset catalogs must already be compiled. Packaging preserves `Assets.car` and icons in `build/app-resources`; generating PNGs alone does not meet Apple's asset catalog requirement.
+- The toolchain is installed separately. Apple SDKs, external libraries, and credentials are not distributed in this repository.
