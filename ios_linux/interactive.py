@@ -56,9 +56,10 @@ def select_config():
 def arguments():
     print('ios-anywhere — local iOS builds\nUse arrow keys to choose, Enter to continue, Ctrl+C to cancel.\n')
     action = choose('What do you want to do?', [
-        ('Build an IPA', 'build'), ('Set up build tools', 'setup'),
-        ('Check tools (doctor)', 'doctor'), ('Install an IPA on iPhone', 'install'),
-        ('Verify an IPA', 'verify'), ('Export resources only', 'bundle'), ('Exit', 'exit'),
+        ('Set up build tools', 'setup'), ('Check tools (doctor)', 'doctor'),
+        ('Build an IPA', 'build'), ('Verify an IPA', 'verify'),
+        ('Install an IPA on iPhone', 'install'), ('Export resources only', 'bundle'),
+        ('Exit', 'exit'),
     ])
     if action == 'exit':
         return None
