@@ -18,7 +18,7 @@ def parser():
 
     p.add_argument("--version", action="version", version=__version__)
     p.add_argument("--config", type=Path, help="Local toolchain configuration")
-    p.add_argument("--engine", choices=["expo", "godot"], default="expo")
+    p.add_argument("--engine", choices=["expo", "godot"])
     p.add_argument("--project", type=Path, help="App source; never modified by the CLI")
 
     p.add_argument(
@@ -29,6 +29,12 @@ def parser():
 
     p.add_argument("--bundle-id", help="Godot app identity; Expo uses app.json/app.config")
     sub = p.add_subparsers(dest="command", required=True)
+    setup = sub.add_parser("setup", help="Install a Godot toolchain interactively (Linux x86_64)")
+    setup.add_argument("--engine", dest="setup_engine", choices=["expo", "godot"], help="Godot is automated; Expo still requires manual setup")
+    setup.add_argument("--toolchain", type=Path, help="New toolchain directory; existing directories are preserved")
+    setup.add_argument("--sdk-source", choices=["local", "mirror"], help="Import a local SDK or use the unofficial pinned mirror")
+    setup.add_argument("--sdk", type=Path, help="Local iPhoneOS18.5.sdk directory")
+    setup.add_argument("--yes", action="store_true", help="Accept tool downloads and missing apt packages; requires --sdk-source")
     sub.add_parser("doctor", help="Check tools without requiring a project")
     sub.add_parser("bundle", help="Generate JS/Hermes or PCK resources without signing")
     build = sub.add_parser("build", help="Prepare, compile, sign, and verify")
@@ -44,6 +50,13 @@ def parser():
 def execute(argv=None):
     p = parser()
     args = p.parse_args(argv)
+
+    if args.command == "setup":
+        from .setup import setup
+        setup(args)
+        return
+
+    args.engine = args.engine or "expo"
 
     if args.command in ("build", "bundle") and not args.project:
         p.error("--project is required.")

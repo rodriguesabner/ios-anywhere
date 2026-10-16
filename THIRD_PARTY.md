@@ -7,6 +7,8 @@
 
 Swift, Apple SDKs, Godot/MoltenVK, Ruby, CocoaPods, LLVM, macros, and zsign-wasm are external dependencies, not redistributed in this repository. Their licenses and requirements remain applicable. A private repository grants no rights to external SDKs or libraries.
 
+The experimental Godot setup downloads upstream Godot 4.5.1 and Darwin tools v1.1.0 releases, installs system Clang 18 and npm zsign-wasm 0.0.4, and optionally fetches the unofficial xybp888/iOS-SDKs mirror at a pinned revision. Source selection, checksums, and limits are documented in [guided setup](docs/setup.md). Choosing a mirror does not grant additional rights or establish Apple authenticity.
+
 ## Preserved license texts
 
 - [Godot MIT license](licenses/Godot.txt), from [Godot 4.5.1](https://github.com/godotengine/godot/blob/4.5.1-stable/LICENSE.txt), covers the Godot-derived templates listed above. The source header in `dummy.cpp` is retained.

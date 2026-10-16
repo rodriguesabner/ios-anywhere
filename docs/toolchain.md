@@ -1,6 +1,6 @@
 # External toolchain
 
-The CLI is independent of application projects, but bootstrapping a clean machine **is still manual**. This repository does not automatically download Apple SDKs or distribute toolchain binaries. Obtain SDKs through permitted means and check each tool's license.
+The CLI is independent of application projects. Experimental [guided Godot setup](setup.md) downloads tools and offers a local SDK import or an explicitly selected unofficial SDK mirror. Expo bootstrap **is still manual**. No toolchain or SDK binaries are included in the repository. External terms remain applicable.
 
 ## Expected layout
 

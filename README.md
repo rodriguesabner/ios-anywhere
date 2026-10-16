@@ -50,7 +50,17 @@ Requires Python 3.11+. Install Node.js/npm compatible with your Expo project bef
 
 ### 2. Configure and check
 
-**An external iOS toolchain is required.** The commands above install the CLI only. If you do not already have the compiler, SDKs, and backend tools, complete the [toolchain installation guide](docs/installation.md#2-prepare-the-external-toolchain) first.
+**An external iOS toolchain is required.** The commands above install the CLI only.
+
+For a **new Godot installation on Linux x86_64**, use the guided setup before creating a config:
+
+```sh
+ios-anywhere setup
+```
+
+It installs the Godot toolchain in stages, offers a local SDK import or an explicitly selected **unofficial SDK mirror**, and checks native linking before saving your config. Missing system packages can be installed through apt with your confirmation. It requires at least 8 GiB free and preserves existing installations. See [guided setup](docs/setup.md) for sources, checksums, unattended usage, and validation limits. **Expo setup remains manual.**
+
+If you already have a prepared toolchain, or use Expo, follow the configuration below and the [toolchain installation guide](docs/installation.md#2-prepare-the-external-toolchain).
 
 ```sh
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ios-anywhere"

@@ -6,6 +6,7 @@ Experimental local iOS compilation, signing, verification, and installation on L
 
 - README.md: installation, commands, capabilities, limits, and Apple submission.
 - docs/toolchain.md: external tools and manual setup.
+- docs/setup.md: experimental guided Godot setup, pinned unofficial SDK option, and validation limits.
 - docs/architecture.md: project isolation and implementation boundaries.
 - docs/validation.md: observed results and unverified behavior.
 - CONTRIBUTING.md: development setup and checks.
@@ -18,6 +19,8 @@ Resolve relative paths from the repository root. Read current code and documenta
 
 Install: python3 -m venv .venv && .venv/bin/pip install .
 Help: .venv/bin/ios-anywhere --help
+Setup: .venv/bin/ios-anywhere setup (Godot only; refuses existing config/toolchain)
+Unattended setup: .venv/bin/ios-anywhere setup --sdk-source mirror --yes (explicit unofficial SDK choice)
 Doctor: .venv/bin/ios-anywhere --engine expo doctor
 Godot doctor: .venv/bin/ios-anywhere --engine godot doctor
 Expo build: .venv/bin/ios-anywhere --engine expo --project /path/to/app --credentials /private/credentials.json build --output /path/to/new.ipa
@@ -35,6 +38,7 @@ This is an external submission service, not a local compiler or proof of Apple a
 
 - ios_linux/cli.py: arguments and orchestration.
 - ios_linux/config.py: toolchain and cache configuration.
+- ios_linux/setup.py: staged Godot setup, checked downloads, SDK import, native link check.
 - ios_linux/expo.py and ios_linux/godot.py: isolated backend workflows.
 - ios_linux/signing.py: credentials, signing, verification, and final output.
 - ios_linux/scripts/: compiler helpers, graph export, and verifier.

@@ -36,6 +36,8 @@ The commands below assume this repository is the current directory and the virtu
 
 ### 2. Prepare the external toolchain
 
+For a new **Godot** installation, [guided setup](setup.md) automates this step: run `ios-anywhere setup` before creating a config. It can import a local SDK or download an explicitly selected unofficial mirror. Existing installations are preserved. Expo and manually prepared installations use the instructions below.
+
 Use an existing compatible toolchain if you already have one. Otherwise, prepare the components below once, outside the repository and your app:
 
 ```sh
