@@ -14,29 +14,29 @@ def check_output(output):
         or output.exists()
         or output.with_suffix(".verification.json").exists()
     ):
-        raise ValueError("Escolha um --output .ipa novo, sem arquivo ou relatório existente.")
+        raise ValueError("Choose a new .ipa --output with no existing file or verification report.")
 
 
 def check_credentials(path):
     data = json.loads(path.read_text()).get("ios")
 
     if not data:
-        raise ValueError("Credenciais precisam conter ios.")
+        raise ValueError("Credentials must contain an ios section.")
 
     entries = [data] if "distributionCertificate" in data else list(data.values())
 
     if not entries:
-        raise ValueError("Credenciais iOS vazias.")
+        raise ValueError("Empty iOS credentials.")
 
     for entry in entries:
         cert = entry["distributionCertificate"]
 
         if "password" not in cert:
-            raise ValueError("Senha do certificado ausente.")
+            raise ValueError("Certificate password is missing.")
 
         for value in [cert["path"], entry["provisioningProfilePath"]]:
             if not (path.parent / value).is_file():
-                raise ValueError("Arquivo de assinatura ausente; confira credentials.json.")
+                raise ValueError("Signing file not found; check credentials.json.")
 
 
 def package(config, app, output, credentials, log_dir):
@@ -87,4 +87,4 @@ def package(config, app, output, credentials, log_dir):
             output.unlink()
             raise
 
-    print(f"IPA assinado e verificado: {output}")
+    print(f"IPA signed and verified: {output}")

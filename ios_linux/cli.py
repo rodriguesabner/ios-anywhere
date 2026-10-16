@@ -13,30 +13,30 @@ from . import expo, godot, signing
 
 def parser():
     p = argparse.ArgumentParser(
-        description="Builds iOS locais no Linux: Expo e Godot (experimental)."
+        description="Local iOS builds on Linux: Expo and Godot (experimental)."
     )
 
     p.add_argument("--version", action="version", version=__version__)
-    p.add_argument("--config", type=Path, help="Configuração local da toolchain")
+    p.add_argument("--config", type=Path, help="Local toolchain configuration")
     p.add_argument("--engine", choices=["expo", "godot"], default="expo")
-    p.add_argument("--project", type=Path, help="Fonte do app; nunca editada pelo CLI")
+    p.add_argument("--project", type=Path, help="App source; never modified by the CLI")
 
     p.add_argument(
         "--credentials",
         type=Path,
-        help="credentials.json com certificado e provisioning deste app",
+        help="credentials.json with this app's certificate and provisioning profile",
     )
 
-    p.add_argument("--bundle-id", help="Identidade do app Godot; Expo usa app.json/app.config")
+    p.add_argument("--bundle-id", help="Godot app identity; Expo uses app.json/app.config")
     sub = p.add_subparsers(dest="command", required=True)
-    sub.add_parser("doctor", help="Verifica ferramentas sem exigir projeto")
-    sub.add_parser("bundle", help="Gera recursos JS/Hermes ou PCK sem assinar")
-    build = sub.add_parser("build", help="Prepara, compila, assina e verifica")
+    sub.add_parser("doctor", help="Check tools without requiring a project")
+    sub.add_parser("bundle", help="Generate JS/Hermes or PCK resources without signing")
+    build = sub.add_parser("build", help="Prepare, compile, sign, and verify")
     build.add_argument("--output", type=Path, required=True)
-    install = sub.add_parser("install", help="Instala um IPA existente")
+    install = sub.add_parser("install", help="Install an existing IPA")
     install.add_argument("ipa", type=Path)
     install.add_argument("--udid", required=True)
-    verify = sub.add_parser("verify", help="Verifica integridade e assinatura local do IPA")
+    verify = sub.add_parser("verify", help="Verify IPA integrity and signature locally")
     verify.add_argument("ipa", type=Path)
     return p
 
@@ -46,16 +46,16 @@ def execute(argv=None):
     args = p.parse_args(argv)
 
     if args.command in ("build", "bundle") and not args.project:
-        p.error("--project é obrigatório.")
+        p.error("--project is required.")
 
     if args.command == "build" and not args.credentials:
-        p.error("--credentials é obrigatório para ambos os motores.")
+        p.error("--credentials is required for both engines.")
 
     if args.command in ("build", "bundle") and args.engine == "godot" and not args.bundle_id:
-        p.error("--bundle-id é obrigatório para Godot.")
+        p.error("--bundle-id is required for Godot.")
 
     if args.bundle_id and args.engine != "godot":
-        p.error("Expo usa a identidade configurada no projeto.")
+        p.error("Expo uses the identity configured in the project.")
 
     if args.command == "verify":
         subprocess.run(
@@ -70,7 +70,7 @@ def execute(argv=None):
 
     if args.command == "install":
         if not args.ipa.is_file():
-            raise ValueError("IPA não encontrado.")
+            raise ValueError("IPA not found.")
 
         env = dict(os.environ)
 
@@ -99,7 +99,7 @@ def execute(argv=None):
     # Toolchain and cache are ownership boundaries; never treat either as a source tree.
     for managed in [config.cache, config.toolchain]:
         if source == managed or source.is_relative_to(managed) or managed.is_relative_to(source):
-            raise ValueError("O projeto precisa ficar fora da toolchain e do cache.")
+            raise ValueError("The project must be outside the toolchain and cache directories.")
 
     config.cache.mkdir(parents=True, exist_ok=True)
 
@@ -107,7 +107,7 @@ def execute(argv=None):
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
-            raise ValueError("Outro build ios-linux está em execução neste cache.")
+            raise ValueError("Another ios-anywhere build is running in this cache.")
 
         if args.command == "build":
             if args.engine == "expo":
@@ -132,8 +132,8 @@ def main(argv=None):
         execute(argv)
         return 0
     except (ValueError, KeyError, OSError, subprocess.CalledProcessError) as error:
-        print(f"Erro: {error}", file=sys.stderr)
+        print(f"Error: {error}", file=sys.stderr)
         return 1
     except KeyboardInterrupt:
-        print("Interrompido; confira os logs no cache.", file=sys.stderr)
+        print("Interrupted; check the logs in the cache.", file=sys.stderr)
         return 130

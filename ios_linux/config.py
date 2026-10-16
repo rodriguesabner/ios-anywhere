@@ -29,7 +29,7 @@ class Config:
         path = (path or default_config()).expanduser().resolve()
 
         if not path.is_file():
-            raise ValueError(f"Configuração ausente: {path}. Consulte docs/toolchain.md.")
+            raise ValueError(f"Configuration not found: {path}. See docs/toolchain.md.")
 
         data = json.loads(path.read_text())
 
@@ -85,16 +85,16 @@ class Config:
             ]
 
         errors = [
-            f"Ausente: {self.toolchain / name}"
+            f"Missing: {self.toolchain / name}"
             for name in required
             if not (self.toolchain / name).exists()
         ]
 
         for command in ["node", "openssl"] + (["npm", self.llvm_ar] if engine == "expo" else []):
             if not shutil.which(command):
-                errors.append(f"Comando ausente: {command}")
+                errors.append(f"Command not found: {command}")
 
         if errors:
             raise ValueError("\n".join(errors))
 
-        print(f"OK: ferramentas {engine} disponíveis. Toolchain: {self.toolchain}")
+        print(f"OK: {engine} tools available. Toolchain: {self.toolchain}")

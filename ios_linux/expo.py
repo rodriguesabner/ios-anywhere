@@ -25,14 +25,14 @@ def run(args, cwd, log, env=None):
         )
 
     if result.returncode:
-        raise ValueError(f"Etapa {log.stem} falhou; consulte {log}")
+        raise ValueError(f"Step {log.stem} failed; see {log}")
 
 
 def build_directory(config, source):
     source = source.resolve()
 
     if not (source / "package.json").is_file():
-        raise ValueError("O projeto Expo precisa conter package.json.")
+        raise ValueError("The Expo project must contain package.json.")
 
     # Identity derives from the full path; equal folder names cannot share artifacts.
     key = (
@@ -44,7 +44,7 @@ def build_directory(config, source):
     job = config.cache / "expo" / key
 
     if source == job or source.is_relative_to(job) or job.is_relative_to(source):
-        raise ValueError("A fonte precisa ficar fora da área de build.")
+        raise ValueError("The source must be outside the build directory.")
 
     return job
 
@@ -109,7 +109,7 @@ def prepare(config, source):
 
         if (project / name).exists():
             if cached.exists():
-                raise ValueError("Cache pendente de recuperação: " + str(cached))
+                raise ValueError("Cache recovery required: " + str(cached))
 
             (project / name).rename(cached)
 
@@ -138,7 +138,7 @@ def prepare(config, source):
 
     if not lock.is_file():
         raise ValueError(
-            "Este backend precisa de package-lock.json para instalar as versões do projeto."
+            "This backend requires package-lock.json to install the project dependency versions."
         )
 
     fingerprint = hashlib.sha256(
@@ -180,7 +180,7 @@ def prepare(config, source):
     marker = "require 'json'"
 
     if marker not in text:
-        raise ValueError("Podfile não reconhecido: não encontrei o ponto de configuração Linux.")
+        raise ValueError("Unrecognized Podfile: Linux configuration insertion point not found.")
 
     text = text.replace(
         marker,
@@ -304,7 +304,7 @@ def bundle(config, job):
     compiler = next((p for p in compilers if p.is_file()), None)
 
     if compiler is None:
-        raise ValueError("Compilador Hermes Linux correspondente ao projeto não encontrado.")
+        raise ValueError("A matching Linux Hermes compiler for this project was not found.")
 
     run(
         [
@@ -359,7 +359,7 @@ def patch_splash(project):
     marker = "    if let vc = UIStoryboard(name: splashScreenFilename, bundle: nil).instantiateInitialViewController() {"
 
     if marker not in text:
-        raise ValueError("Implementação de splash screen não reconhecida para o build Linux.")
+        raise ValueError("Unrecognized splash screen implementation for the Linux build.")
 
     # shortcut: no ibtool on Linux; use UIKit launch resources until storyboard compilation is supported.
     text = text.replace(
@@ -406,7 +406,7 @@ def patch_scene(project, apps):
 
         if start < 0 or end < 0:
             raise ValueError(
-                "AppDelegate personalizado: adapte o ciclo UIScene antes do build SDK 27."
+                "Custom AppDelegate: adapt the UIScene lifecycle before building with SDK 27."
             )
 
         text = text[:start] + text[end + len("      launchOptions: launchOptions)") :]
@@ -455,14 +455,14 @@ def native(config, job):
     libraries, apps = graphs(job)
 
     if len(apps) != 1:
-        raise ValueError("Expo externo: extensões ainda exigem adaptação de recursos e assinatura.")
+        raise ValueError("External Expo projects: extensions still require resource and signing adaptations.")
 
     patch_scene(project, apps)
 
     if any(
         Path(f["path"]).suffix in (".m", ".mm", ".c", ".cpp") for a in apps for f in a["sources"]
     ):
-        raise ValueError("O target principal externo ainda precisa ser Swift.")
+        raise ValueError("The external main target must currently use Swift.")
 
     rn = project / "node_modules/react-native"
     version = json.loads((rn / "package.json").read_text())["version"]
@@ -549,7 +549,7 @@ def native(config, job):
         visit("Pods-" + app["name"])
 
     if not selected:
-        raise ValueError("O grafo não contém o aggregate CocoaPods do app.")
+        raise ValueError("The graph does not contain the app's CocoaPods aggregate target.")
 
     for target in selected + apps:
         if any(s["path"].endswith(".swift") for s in target["sources"]):
@@ -681,7 +681,7 @@ def stage(job):
     # shortcut: extension resource scripts need dedicated support before external widget builds.
     if len(apps) != 1:
         raise ValueError(
-            "O backend externo ainda precisa de adaptação para múltiplos targets/extensões."
+            "The external backend still requires adaptation for multiple targets/extensions."
         )
 
     app = apps[0]
@@ -711,7 +711,7 @@ def stage(job):
 
     if "$(" in raw:
         raise ValueError(
-            "Variáveis não resolvidas no Info.plist: "
+            "Unresolved variables in Info.plist: "
             + ", ".join(sorted(set(re.findall(r"\$\(([^)]+)\)", raw))))
         )
 
@@ -790,7 +790,7 @@ def stage(job):
             src = Path(filename)
 
             if not src.exists():
-                raise ValueError("Recurso nativo não gerado: " + filename)
+                raise ValueError("Native resource not generated: " + filename)
 
             if src.is_dir():
                 shutil.copytree(src, resource / src.name, dirs_exist_ok=True)
@@ -887,7 +887,7 @@ def build(config, source, output, credentials):
 
     if not credentials.is_file() or not json.loads(credentials.read_text()).get("ios"):
         raise ValueError(
-            "Informe --credentials com credenciais iOS; o arquivo padrão é credentials.json do projeto."
+            "Provide --credentials with iOS credentials; the default file is the project's credentials.json."
         )
 
     job = prepare(config, source)

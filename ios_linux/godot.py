@@ -12,19 +12,19 @@ from . import signing
 
 def prepare(config, source, bundle_id):
     if not (source / "project.godot").is_file():
-        raise ValueError("A pasta precisa conter project.godot.")
+        raise ValueError("The directory must contain project.godot.")
 
     if not re.fullmatch(r"[A-Za-z][A-Za-z0-9-]*(?:\.[A-Za-z0-9-]+)+", bundle_id):
-        raise ValueError("Bundle ID inválido.")
+        raise ValueError("Invalid Bundle ID.")
 
     if any(source.rglob("*.gdextension")) or any(source.rglob("*.cs")):
-        raise ValueError("Este engine não inclui suporte a C# ou GDExtensions.")
+        raise ValueError("This engine does not support C# or GDExtensions.")
 
     key = bundle_id + "-" + hashlib.sha256(str(source).encode()).hexdigest()[:10]
     job = config.cache / "godot" / key
 
     if source == job or source.is_relative_to(job) or job.is_relative_to(source):
-        raise ValueError("A fonte precisa ficar fora da área de build.")
+        raise ValueError("The source must be outside the build directory.")
 
     job.mkdir(parents=True, exist_ok=True)
     project = job / "project"
@@ -81,7 +81,7 @@ def bundle(config, job):
 
     with (job / "Game.pck").open("rb") as stream:
         if stream.read(4) != b"GDPC":
-            raise ValueError("Godot não produziu um PCK válido.")
+            raise ValueError("Godot did not produce a valid PCK.")
 
 
 def native(config, job):

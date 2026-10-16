@@ -62,7 +62,7 @@ if args.cxx_sources:
     sources = sorted(args.cxx_sources.resolve().glob("*.swift"))
 
     if not sources or any("protocol CxxIterable" in p.read_text() for p in sources):
-        raise ValueError("Use os fontes Cxx de swift-6.2-RELEASE.")
+        raise ValueError("Use Cxx sources from swift-6.2-RELEASE.")
 
     command = [
         str(tools / "swift/usr/bin/swiftc"),
@@ -98,7 +98,7 @@ if args.cxx_sources:
     subprocess.run(command, check=True)
 
     if "CxxIterable" in (runtime / "Cxx.swiftinterface").read_text():
-        raise ValueError("Overlay incompatível.")
+        raise ValueError("Incompatible overlay.")
 
     modules = runtime / "modules/Cxx.swiftmodule"
     modules.mkdir(parents=True, exist_ok=True)
