@@ -1,0 +1,75 @@
+import json
+import os
+from pathlib import Path
+import runpy
+import tempfile
+import unittest
+from unittest.mock import patch
+from ios_linux import expo
+from ios_linux.config import Config, SCRIPTS
+
+
+class NativeCompatTests(unittest.TestCase):
+    def test_recursive_header_paths_expand_without_losing_spaces(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            headers = root / 'my headers'
+            (headers / 'api/third_party').mkdir(parents=True)
+            (headers / 'api/third_party/base64.h').touch()
+            (root / 'pods-graph.json').write_text('[]')
+            env = {'IOS_LINUX_TOOLCHAIN': str(root), 'IOS_LINUX_BUILD': str(root), 'IOS_LINUX_PROJECT': str(root)}
+            with patch.dict(os.environ, env):
+                compiler = runpy.run_path(str(SCRIPTS / 'compile-pods.py'))
+            target = {'name': 'Skia', 'settings': {'HEADER_SEARCH_PATHS': f'"{headers}/"/**'}}
+            cmd, _ = compiler['command'](target, {'path': str(root / 'base64.cpp')})
+            self.assertIn(str(headers / 'api'), cmd)
+            self.assertIn(str(headers / 'api/third_party'), cmd)
+            self.assertFalse(any('**' in arg for arg in cmd))
+            self.assertFalse(any(arg.endswith('base64.h') for arg in cmd))
+            self.assertIn('-DFMT_USE_CONSTEVAL=0', cmd)
+            ccmd, _ = compiler['command'](target, {'path': str(root / 'source.c')})
+            self.assertNotIn('-DFMT_USE_CONSTEVAL=0', ccmd)
+
+    def test_glog_repairs_cached_probes_preserving_apple_tail_and_textual_map(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            header = root / 'ios/Pods/glog/src/config.h'
+            header.parent.mkdir(parents=True)
+            suffix = '/* Add in so we have Apple Target Conditionals */\n#include <TargetConditionals.h>\n'
+            header.write_text('/* #undef HAVE_PTHREAD */\n/* #undef HAVE_PREAD */\n' + suffix)
+            modulemap = root / 'ios/Pods/Target Support Files/glog/glog.modulemap'
+            modulemap.parent.mkdir(parents=True)
+            modulemap.write_text('module glog {\n umbrella header "glog-umbrella.h"\n export *\n module * { export * }\n}\n')
+            def configure(*args):
+                self.assertEqual(args[3]['CFLAGS'], '-O2 -g0')
+                header.write_text('#define HAVE_PTHREAD 1\n#define HAVE_PREAD 1\n')
+            with patch.object(expo, 'run', side_effect=configure) as run:
+                config = Config(root / 'tools', root / 'cache')
+                expo.prepare_glog(config, root, root, root)
+                expo.prepare_glog(config, root, root, root)
+                run.assert_called_once()
+            self.assertTrue(header.read_text().endswith(suffix))
+            self.assertIn('textual header', modulemap.read_text())
+            self.assertNotIn('umbrella header', modulemap.read_text())
+            self.assertNotIn('module *', modulemap.read_text())
+
+    def test_glog_failed_probes_stop_instead_of_disabling_threads(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            header = root / 'ios/Pods/glog/src/config.h'
+            header.parent.mkdir(parents=True)
+            header.write_text('/* #undef HAVE_PTHREAD */')
+            with patch.object(expo, 'run'), self.assertRaisesRegex(ValueError, 'pthread/pread'):
+                expo.prepare_glog(Config(root, root), root, root, root)
+
+    def test_fmt_override_guard_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            header = project / 'ios/Pods/fmt/include/fmt/base.h'
+            header.parent.mkdir(parents=True)
+            header.write_text('#if !defined(__cpp_lib_is_constant_evaluated)\n#define FMT_USE_CONSTEVAL 0\n#else\n#define FMT_USE_CONSTEVAL 1\n#endif\n')
+            expo.patch_native_sources(project)
+            patched = header.read_text()
+            self.assertIn('#if defined(FMT_USE_CONSTEVAL)', patched)
+            expo.patch_native_sources(project)
+            self.assertEqual(patched, header.read_text())
