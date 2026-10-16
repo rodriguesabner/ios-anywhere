@@ -33,8 +33,8 @@ async function main() {
   const cert = entries[0].distributionCertificate;
   vfs.writeFile('/sign/key.p12', fs.readFileSync(path.resolve(project, cert.path)));
   const provFiles = [];
-  for (const name of Object.keys(credentials)) {
-    const dst = `/sign/${name}.mobileprovision`;
+  for (const [index, name] of Object.keys(credentials).entries()) {
+    const dst = `/sign/profile-${index}.mobileprovision`;
     vfs.writeFile(
       dst,
       fs.readFileSync(path.resolve(project, credentials[name].provisioningProfilePath)),

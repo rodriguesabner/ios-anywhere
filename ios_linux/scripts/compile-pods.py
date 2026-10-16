@@ -8,7 +8,7 @@ root = Path(os.environ["IOS_LINUX_BUILD"])
 project = Path(os.environ["IOS_LINUX_PROJECT"])
 pods = project / "ios/Pods"
 sdk = toolroot / "sdks/iPhoneOS26.4.sdk"
-graph = json.loads((root / "pods-graph.json").read_text())
+graph = json.loads((root / "pods-graph.json").read_text()) + json.loads((root / "app-graph.json").read_text())
 products = root / "products"
 framework_dirs = list(pods.rglob("*.xcframework/ios-arm64/*.framework"))
 
@@ -49,7 +49,7 @@ def command(t, source):
     cmd = [
         str(toolroot / "swift/usr/bin/clang++" if cpp else toolroot / "swift/usr/bin/clang"),
         "-target",
-        "arm64-apple-ios16.4",
+        "arm64-apple-ios" + str(s.get("IPHONEOS_DEPLOYMENT_TARGET") or "16.4"),
         "-isysroot",
         str(sdk),
         "-c",
@@ -64,6 +64,9 @@ def command(t, source):
         "-fmodules-cache-path=" + str(root / "clang-cache"),
         "-Wno-error",
     ]
+
+    if s.get("APPLICATION_EXTENSION_API_ONLY") == "YES" or t.get("product_type") == "com.apple.product-type.app-extension":
+        cmd += ["-fapplication-extension"]
 
     if cpp:
         cmd += [

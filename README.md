@@ -166,7 +166,7 @@ Sources: [EAS Submit for iOS](https://docs.expo.dev/submit/ios/), [submitting an
 | Expo | SDK 54 examples built and tested on iPhone; native dependencies may need adaptation. |
 | Godot | GDScript with engine 4.5.1; examples built and tested on iPhone. |
 | Signing | Valid certificate and provisioning profile supplied by the user. |
-| Widgets and extensions | Not supported by the generic CLI workflow yet. |
+| Widgets and extensions | Experimental multi-target backend; see [support and validation limits](docs/multiple-targets.md). |
 | App Store | Upload tested with CS Callouts; Apple processing and approval remain unverified. Precompiled assets are still required. |
 | Host systems | Linux x86_64 validated. Windows and macOS have not been validated. |
 
@@ -257,3 +257,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and checks, [Validation](docs/v
 Project-authored code is licensed under [MIT](LICENSE). Third-party material retains its own licenses and copyright notices; see [Third-party components](THIRD_PARTY.md).
 
 **You must legally obtain and be authorized to use external tools and SDKs**, including Apple SDKs and toolchain dependencies, under their applicable terms. ios-anywhere grants no tool license, key, or activation entitlement. Unauthorized copies, stolen keys, unauthorized credential sharing, and bypassing license restrictions are not authorized by the project. This guidance does not amend MIT or third-party licenses.
+
+For Expo app extensions and widgets, see [multi-target support and limits](docs/multiple-targets.md).

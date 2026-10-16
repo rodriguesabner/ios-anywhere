@@ -70,6 +70,7 @@ class CliTests(unittest.TestCase):
 
             with (
                 patch.object(signing, "check_credentials"),
+                patch.object(signing, "check_bundle_profiles"),
                 patch.object(signing.subprocess, "run", side_effect=run),
             ):
                 with self.assertRaises(subprocess.CalledProcessError):
