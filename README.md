@@ -38,6 +38,14 @@ python -m pip install .
 
 Use Python 3.11.8+ or 3.12+. In a new terminal, activate this virtual environment again before using the CLI.
 
+**Prefer a guided menu?** Run:
+
+```sh
+ios-anywhere
+```
+
+Choose an action, engine, saved configuration, and project path with arrow keys and path completion. The menu can start setup, build, check tools, verify, or install an IPA. It shows the equivalent command before running it; the explicit commands below still work for scripts. Press Ctrl+C to cancel.
+
 ## 2. Set up your build tools
 
 **Godot:** have at least **8 GiB free**, then run:

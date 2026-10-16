@@ -18,6 +18,7 @@ Resolve relative paths from the repository root. Read current code and documenta
 ## Command contract
 
 Install: python3 -m venv .venv && .venv/bin/pip install .
+Interactive: .venv/bin/ios-anywhere (no arguments, terminal only; arrow-key menus produce the existing CLI arguments)
 Help: .venv/bin/ios-anywhere --help
 Setup: .venv/bin/ios-anywhere setup (Godot by default; refuses existing config/toolchain)
 Unattended setup: .venv/bin/ios-anywhere setup --sdk-source mirror --yes (explicit unofficial SDK choice)
