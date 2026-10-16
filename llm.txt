@@ -66,3 +66,8 @@ python3 -m compileall -q ios_linux tests
 git diff --check
 
 Documentation-only changes need link and command checks, not a new device build. Keep documentation in English. Do not run real signing, installation, submission, or expensive builds just to edit documentation.
+
+Signing setup: ios-anywhere --config /path/to/config.json signing-setup --output /private/new-signing-folder
+Interactive Apple login/team selection, existing distribution P12 validation, device selection/registration, and Ad Hoc profile creation. Explicit confirmation precedes Apple mutations. Never creates/revokes certificates. One app/device, no capability configuration. Output credentials contain a password; keep private. Failed runs preserve partial files/resources.
+Saved devices: ~/.config/ios-anywhere/devices/saved.json (XDG_CONFIG_HOME respected). Install menu selects a saved name/UDID or saves a new one; every app/extension profile must include the selected UDID. Local device saving is not Apple registration. USB trust/pairing is still required.
+Signing helper tests: node --test tests/signing-setup.test.cjs (Node and OpenSSL required; fake Apple API, temporary test keys only).

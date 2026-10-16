@@ -2,7 +2,32 @@
 
 [Back to quick commands](../README.md#signing-setup-and-device-preparation)
 
-Use the format in [credentials.example.json](../credentials.example.json). Certificate and profile paths can be absolute or relative to the credentials file. For direct device installation, the profile must match the app identity and include the device. Supply your certificate, password, and profile; the CLI does not sign in to Apple or create profiles automatically.
+Use the format in [credentials.example.json](../credentials.example.json). Certificate and profile paths can be absolute or relative to the credentials file. For direct device installation, the profile must match the app identity and include the device. Supply existing credentials, or use the guided signing assistant below.
+
+### Guided signing and saved devices
+
+Run `ios-anywhere` and choose **Set up signing**, or:
+
+```sh
+ios-anywhere --config ~/.config/ios-anywhere/expo.json \
+  signing-setup --output ~/private-signing/my-app
+```
+
+Select the config for either installed engine. This command needs Node, npm, and OpenSSL; it does not build an app. On first use it asks to install `@expo/apple-utils@2.2.1` and `prompts@2.4.2` outside the repository. Apple login, two-factor authentication, and team selection are handled by that unofficial library, which may cache your Apple session locally.
+
+1. Enter your explicit bundle ID and select an existing distribution certificate.
+2. Provide the matching `.p12` and its password. The assistant verifies the certificate and private key locally before proceeding. It cannot recover a missing private key or generate a new certificate.
+3. Select a registered device or enter a new device name and UDID.
+4. Confirm the displayed team, bundle ID, certificate, device, and output folder. Only then can it register a device, create a missing App ID, and create a new Ad Hoc profile. Device registration counts toward Apple's limits.
+5. Use the generated `credentials.json` when building with that same bundle ID.
+
+Existing output folders are rejected. The new folder is private (`0700`); its files use `0600`. The JSON contains your P12 password, so keep the entire folder out of version control. Cancelling the final confirmation creates no Apple resources. If a later operation fails, partial local files and already-created Apple resources are preserved, never revoked automatically. Review them before retrying with a new folder.
+
+This flow covers **one app and one device**, without configuring capabilities. Apps with extensions or special entitlements still need matching profiles for each target; do not replace an existing multi-target credentials file with this single-target result.
+
+Successful setup saves the phone's name and UDID in `$XDG_CONFIG_HOME/ios-anywhere/devices/saved.json` (default `~/.config/ios-anywhere/devices/saved.json`). **Install an IPA on iPhone** lets you select it or enter and save another phone. Saving a phone locally does not register it with Apple or modify an IPA. Installation checks every embedded app/extension profile for the selected UDID before invoking the installer. Connect, unlock, and trust/pair the phone as described below. Explicit `install --udid` commands still work and do not save a device automatically.
+
+The device check does not verify Apple's trust/revocation status or replace `verify`. Creating another profile does not update an existing IPA: rebuild it with the new credentials.
 
 ### Godot: create a profile for your own bundle ID
 

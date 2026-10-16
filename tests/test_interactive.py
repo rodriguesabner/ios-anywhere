@@ -46,7 +46,7 @@ class InteractiveTests(unittest.TestCase):
             with patch.object(interactive, 'choose', return_value=action) as choose, \
                  patch.object(interactive, 'select_config', return_value='/config.json'), \
                  patch.object(interactive, 'path_prompt', return_value='/app.ipa'), \
-                 patch.object(interactive, 'ask', return_value='device-id'):
+                 patch('ios_linux.devices.select', return_value='device-id'):
                 args = cli.parser().parse_args(interactive.arguments())
             choose.assert_called_once()
             self.assertEqual(args.command, action)

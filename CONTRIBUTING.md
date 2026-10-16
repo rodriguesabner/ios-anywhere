@@ -19,8 +19,11 @@ Unit tests need no certificates, device, or Apple SDKs. Real builds require the 
 ```sh
 .venv/bin/python -m unittest discover -s tests -v
 .venv/bin/python -m compileall -q ios_linux tests
+node --test tests/signing-setup.test.cjs
 git diff --check
 ```
+
+Signing-helper tests require Node and OpenSSL; they use a fake Apple API and temporary test certificates, never an Apple account.
 
 Add a small test for new logic or a regression fix. Document changes to configuration, commands, and compatibility. Preserve the `ios-linux` alias, existing paths, and `IOS_LINUX_*` variables unless implementing an explicit migration.
 
