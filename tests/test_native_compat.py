@@ -37,6 +37,7 @@ class NativeCompatTests(unittest.TestCase):
             header.parent.mkdir(parents=True)
             suffix = '/* Add in so we have Apple Target Conditionals */\n#include <TargetConditionals.h>\n'
             header.write_text('/* #undef HAVE_PTHREAD */\n/* #undef HAVE_PREAD */\n' + suffix)
+            header.chmod(0o444)
             modulemap = root / 'ios/Pods/Target Support Files/glog/glog.modulemap'
             modulemap.parent.mkdir(parents=True)
             modulemap.write_text('module glog {\n umbrella header "glog-umbrella.h"\n export *\n module * { export * }\n}\n')
@@ -73,3 +74,32 @@ class NativeCompatTests(unittest.TestCase):
             self.assertIn('#if defined(FMT_USE_CONSTEVAL)', patched)
             expo.patch_native_sources(project)
             self.assertEqual(patched, header.read_text())
+
+    def test_read_only_fmt_is_patchable_without_changing_other_pods(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            header = project / 'ios/Pods/fmt/include/fmt/base.h'
+            header.parent.mkdir(parents=True)
+            header.write_text('#if !defined(__cpp_lib_is_constant_evaluated)\n#endif\n')
+            header.chmod(0o444)
+            unrelated = project / 'ios/Pods/other.h'
+            unrelated.write_text('unchanged')
+            unrelated.chmod(0o444)
+            external = project / 'external.h'
+            external.write_text('outside pod')
+            external.chmod(0o444)
+            (header.parent / 'external.h').symlink_to(external)
+            expo.patch_native_sources(project)
+            self.assertIn('#if defined(FMT_USE_CONSTEVAL)', header.read_text())
+            self.assertEqual(header.stat().st_mode & 0o777, 0o644)
+            self.assertEqual(unrelated.stat().st_mode & 0o777, 0o444)
+            self.assertEqual(external.stat().st_mode & 0o777, 0o444)
+
+    def test_symlinked_pod_is_not_modified(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            (project / 'ios/Pods').mkdir(parents=True)
+            (project / 'external').mkdir()
+            (project / 'ios/Pods/fmt').symlink_to(project / 'external')
+            with self.assertRaisesRegex(ValueError, 'symlinked Pod'):
+                expo.unlock_cached_pod(project, 'fmt')

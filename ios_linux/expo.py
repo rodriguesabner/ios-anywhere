@@ -7,6 +7,7 @@ import plistlib
 import re
 import shutil
 import subprocess
+import stat
 from .config import SCRIPTS
 from . import signing
 from pathlib import Path
@@ -392,6 +393,21 @@ def patch_splash(project):
     path.write_text(text)
 
 
+def unlock_cached_pod(project, name):
+    # CocoaPods marks downloaded sources read-only; patches run only in our build copy.
+    pod = project / "ios/Pods" / name
+    if not pod.exists():
+        return
+    if pod.is_symlink():
+        raise ValueError(f"Refusing to modify a symlinked Pod: {pod}")
+    for path in [pod, *pod.rglob("*")]:
+        if path.is_symlink():
+            continue
+        mode = path.stat().st_mode
+        if not mode & stat.S_IWUSR:
+            path.chmod(stat.S_IMODE(mode) | stat.S_IWUSR)
+
+
 def patch_native_sources(project):
     patch_splash(project)
     fmt = project / "ios/Pods/fmt/include/fmt/base.h"
@@ -400,6 +416,7 @@ def patch_native_sources(project):
         marker = "#if !defined(__cpp_lib_is_constant_evaluated)"
         # fmt 11.0 ignores an explicit FMT_USE_CONSTEVAL override; newer releases already honor it.
         if marker in text:
+            unlock_cached_pod(project, "fmt")
             fmt.write_text(text.replace(marker, "#if defined(FMT_USE_CONSTEVAL)\n// Use the compiler-provided setting.\n#elif !defined(__cpp_lib_is_constant_evaluated)", 1))
     source = project / "node_modules/react-native-screens/ios/RNSScreenStackHeaderConfig.mm"
 
@@ -426,6 +443,7 @@ def prepare_glog(config, project, build, job):
     if header.is_file():
         text = header.read_text()
         if any(f"#define {name} 1" not in text for name in ("HAVE_PTHREAD", "HAVE_PREAD")):
+            unlock_cached_pod(project, "glog")
             # Older cached probes failed at dsymutil, falsely disabling available iOS APIs.
             marker = "/* Add in so we have Apple Target Conditionals */"
             suffix = text[text.index(marker):] if marker in text else ""
