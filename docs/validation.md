@@ -82,3 +82,9 @@ Checked locally with the installed iOS toolchain: seven glog 0.3.5 source files 
 
 
 CocoaPods can remove glog's `configure` after installation. Recovery therefore links a small iOS-target program using pthread mutex/create/join and pread, then changes only the recognized failed HAVE_PTHREAD/HAVE_PREAD entries in cached config.h. It preserves the remaining configuration, stops if linking fails or the config format is unknown, and does not execute the iOS probe on Linux. A real component check removes configure and marks config.h read-only before exercising recovery and compiling seven glog files.
+
+## Static XCFramework link paths
+
+The Expo linker now reads XCFramework metadata under Pods and selected local Pod source roots. For requested `-l` libraries it adds static `.a` slice directories matching iOS device and arm64, including names such as `ios-arm64_arm64e`. Simulator/tvOS variants and unrequested libraries are excluded. Missing archive paths and conflicting matching libraries fail explicitly.
+
+Regression checks cover local node_modules Pods, platform selection, duplicate discovery and invalid paths. A real arm64/arm64e universal archive containing a synthetic function failed to link without the search path and linked successfully with the selected path. This is not a complete Skia or Expo application validation; framework packaging and unrelated SDK auto-link warnings are unchanged.

@@ -536,6 +536,40 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         path.write_text(text)
 
 
+def static_xcframework_paths(project, targets, flags):
+    """Locate requested static libraries in iOS-device slices, including local Pods."""
+    pods = project / "ios/Pods"
+    roots = {pods.resolve()}
+    for target in targets:
+        source = target["settings"].get("PODS_TARGET_SRCROOT")
+        if source:
+            roots.add((pods / source).resolve())
+    requested = {flag[2:] for flag in flags if flag.startswith("-l") and len(flag) > 2}
+    bundles = {p.resolve() for root in roots if root.is_dir() for p in root.rglob("*.xcframework")}
+    found = {}
+    for bundle in sorted(bundles):
+        info = bundle / "Info.plist"
+        if not info.is_file():
+            continue
+        entries = plistlib.loads(info.read_bytes()).get("AvailableLibraries", [])
+        for entry in entries:
+            library = Path(entry.get("LibraryPath", ""))
+            name = library.stem.removeprefix("lib")
+            if library.suffix != ".a" or name not in requested:
+                continue
+            if entry.get("SupportedPlatform") != "ios" or entry.get("SupportedPlatformVariant"):
+                continue
+            if "arm64" not in entry.get("SupportedArchitectures", []):
+                continue
+            path = (bundle / entry["LibraryIdentifier"] / library).resolve()
+            if not path.is_relative_to(bundle) or not path.is_file():
+                raise ValueError(f"Invalid or missing iOS archive in XCFramework: {bundle} ({library})")
+            if name in found and found[name] != path:
+                raise ValueError(f"Ambiguous iOS static library lib{name}.a: {found[name]} and {path}")
+            found[name] = path
+    return ["-L" + str(directory) for directory in sorted({p.parent for p in found.values()})]
+
+
 def native(config, job):
     project, build = job / "project", job / "build"
     pods = project / "ios/Pods"
@@ -751,6 +785,7 @@ def compile_and_link(config, job, selected, apps):
         ]
 
         cmd += ["-L" + str(a.parent) for a in archives]
+        cmd += static_xcframework_paths(project, selected, flags)
         cmd += ["-F" + str(f.parent) for f in frameworks] + flags
         cmd += [tools / "cxx-runtime/compat-markers.o"]
 
