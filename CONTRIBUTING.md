@@ -1,6 +1,6 @@
 # Contributing to ios-anywhere
 
-Report bugs or suggest improvements in [issues](https://github.com/rodriguesabner/ios-anywhere/issues). Submit code or documentation changes through a [pull request](https://github.com/rodriguesabner/ios-anywhere/pulls). This is a private repository; these resources require access.
+Report bugs or suggest improvements in [issues](https://github.com/rodriguesabner/ios-anywhere/issues). Submit code or documentation changes through a [pull request](https://github.com/rodriguesabner/ios-anywhere/pulls).
 
 ## Setup
 

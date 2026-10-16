@@ -6,7 +6,7 @@ Copy the following prompt into the tool or agent that will create the website.
 
 Create a polished, fast, responsive presentation website for **ios-anywhere**, an experimental CLI that compiles, signs, and installs iOS apps locally on Linux, with Expo and Godot backends. Repository: https://github.com/rodriguesabner/ios-anywhere.
 
-Before writing content, read README.md, docs/toolchain.md, docs/validation.md, llm.txt, and pyproject.toml in the repository. Treat these as the source of truth. If the private repository is inaccessible, request those files; do not invent capabilities. Write all website content in English.
+Before writing content, read README.md, docs/toolchain.md, docs/validation.md, llm.txt, and pyproject.toml in the repository. Treat these as the source of truth. If the repository is inaccessible, request those files; do not invent capabilities. Write all website content in English.
 
 ## Visual direction
 
@@ -31,7 +31,7 @@ Build a static website in site/ using HTML, CSS, and minimal JavaScript. No back
 
 Prepare GitHub Pages using official GitHub Actions for artifact upload and deployment of site/, minimum permissions, the github-pages environment, workflow_dispatch, and pushes to the actual default branch only when site/ or its workflow changes. Discover the branch before configuring it. Paths must work under /ios-anywhere/ without breaking CSS, links, or images. Prefer local assets.
 
-Keep the repository private. Before enabling or executing publication, check Pages availability for the account/plan and present the site's actual visibility for approval. Never make the repository public to work around a limitation. Review website material separately from private code. Never publish certificates, keys, UDIDs, provisioning profiles, IPAs, application data, logs, or toolchains.
+The repository is public. Do not change its visibility. Before enabling or executing website publication, check Pages availability for the account/plan and present the site's actual visibility for approval. Review website material before publication. Never publish certificates, keys, UDIDs, provisioning profiles, IPAs, application data, logs, or toolchains.
 
 ## Quality and delivery
 

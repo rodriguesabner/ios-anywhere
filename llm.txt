@@ -1,6 +1,6 @@
 # ios-anywhere — AI agent guide
 
-Experimental local iOS compilation, signing, verification, and installation on Linux x86_64. Backends: Expo and Godot. Repository: https://github.com/rodriguesabner/ios-anywhere (private; access required).
+Experimental local iOS compilation, signing, verification, and installation on Linux x86_64. Backends: Expo and Godot. Repository: https://github.com/rodriguesabner/ios-anywhere.
 
 ## Read first
 
@@ -12,7 +12,7 @@ Experimental local iOS compilation, signing, verification, and installation on L
 - DISCLAIMER.md and THIRD_PARTY.md: authorized use and external dependencies.
 - LICENSE: MIT for project-authored code; third-party terms remain applicable.
 
-Resolve relative paths from the repository root. Read current code and documentation instead of assuming features from the project name. If this private repository is unavailable, request the relevant files; do not invent their contents.
+Resolve relative paths from the repository root. Read current code and documentation instead of assuming features from the project name. If the repository is unavailable, request the relevant files; do not invent their contents.
 
 ## Command contract
 
@@ -48,7 +48,7 @@ Use explicit user-authorized projects, credentials, output paths, and devices. N
 
 Stop builds before deleting their temporary outputs. Identify exact cache paths; preserve source, credentials, durable toolchains, and requested final artifacts. Check free disk space before large builds. Do not change repository visibility to enable hosting.
 
-Only Linux x86_64 is validated. Expo SDK 54 and Godot 4.5.1 minimal examples ran on iPhone. Generic widgets/extensions are unsupported. Godot C# and GDExtensions are rejected. Godot sets version/build to 1.0/1. Precompiled Assets.car is still required for the documented App Store path. Clean-machine bootstrap and universal compatibility are not established.
+Only Linux x86_64 is validated. Expo SDK 54 and Godot 4.5.1 minimal examples ran on iPhone. Generic widgets/extensions are unsupported. Godot C# and GDExtensions are rejected. Godot sets version/build to 1.0/1. CS Callouts was uploaded to Apple with a Linux-built executable and an asset catalog reused from an EAS build of the same app (docs/validation.md). Apple processing, TestFlight availability, App Review, and publication remain unverified. Precompiled Assets.car is still required for the documented App Store path. Clean-machine bootstrap and universal compatibility are not established.
 
 Verification checks local integrity/signatures, not Apple trust/revocation or runtime behavior. Distinguish build, verification, installation, launch, feature testing, upload, Apple processing, and review approval. Report only observed results.
 
