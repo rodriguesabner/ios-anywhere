@@ -53,17 +53,21 @@ Requires Python 3.11+. Install Node.js/npm compatible with your Expo project bef
 **An external iOS toolchain is required.** The commands above install the CLI only. If you do not already have the compiler, SDKs, and backend tools, complete the [toolchain installation guide](docs/installation.md#2-prepare-the-external-toolchain) first.
 
 ```sh
-CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ios-linux"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ios-anywhere"
 mkdir -p "$CONFIG_DIR"
-if [ ! -e "$CONFIG_DIR/config.json" ]; then
+LEGACY_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/ios-linux/config.json"
+if [ ! -e "$CONFIG_DIR/config.json" ] && [ ! -f "$LEGACY_CONFIG" ]; then
   cp config.example.json "$CONFIG_DIR/config.json"
 fi
 
-# Edit config.json: set toolchain to your prepared toolchain directory.
+# Edit the existing config, or the new $CONFIG_DIR/config.json.
+# Set toolchain to your prepared toolchain directory.
 # Then check the backend you will use:
 ios-anywhere --engine expo doctor
 # Or: ios-anywhere --engine godot doctor
 ```
+
+`ios-anywhere/config.json` is preferred; an existing `ios-linux/config.json` remains a fallback. `--config` selects an explicit file. No files are moved or overwritten.
 
 `doctor` checks prerequisites; it does not install them. Full setup instructions and tested scope are in [Installation details](docs/installation.md).
 
@@ -190,9 +194,9 @@ The [website source](docs/index.html) includes an embedded player, commands, com
 - `ios_linux/scripts/`: shared compilation, graph export, and signing scripts.
 - `examples/`: independent minimal Expo and Godot apps; change the Expo identity before signing.
 - `tests/`: tests requiring no certificates, device, or Apple SDKs.
-- External toolchain: `~/.local/share/ios-linux/toolchain`.
-- Disposable cache: `~/.cache/ios-linux`, containing source copies, resources, products, and logs. Do not share it: projects and configurations may contain private data.
-- Local configuration: `~/.config/ios-linux/config.json`.
+- External toolchain: `~/.local/share/ios-anywhere/toolchain`.
+- Disposable cache: `~/.cache/ios-anywhere`, containing source copies, resources, products, and logs. Do not share it: projects and configurations may contain private data.
+- Local configuration: `~/.config/ios-anywhere/config.json`.
 
 No project is selected implicitly. Builds do not depend on the working directory or clone location. CocoaPods generates absolute paths in the cache; rebuild after moving it. Do not move or delete the toolchain or cache during a build.
 

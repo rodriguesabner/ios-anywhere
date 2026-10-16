@@ -11,9 +11,13 @@ TEMPLATES = Path(__file__).parent / "templates"
 
 
 def default_config():
-    return (
-        Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "ios-linux/config.json"
-    )
+    root = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config").expanduser()
+    preferred = root / "ios-anywhere/config.json"
+    legacy = root / "ios-linux/config.json"
+    # Never migrate or overwrite a user's files, or hide an invalid new config.
+    if preferred.exists() or not legacy.is_file():
+        return preferred
+    return legacy
 
 
 @dataclass(frozen=True)

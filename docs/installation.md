@@ -39,7 +39,7 @@ The commands below assume this repository is the current directory and the virtu
 Use an existing compatible toolchain if you already have one. Otherwise, prepare the components below once, outside the repository and your app:
 
 ```sh
-export TOOLCHAIN="$HOME/.local/share/ios-linux/toolchain"
+export TOOLCHAIN="$HOME/.local/share/ios-anywhere/toolchain"
 mkdir -p "$TOOLCHAIN"
 ```
 
@@ -103,14 +103,15 @@ Install libimobiledevice's `ideviceinstaller` using your distribution's packages
 Create a config without overwriting an existing one:
 
 ```sh
-CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ios-linux"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ios-anywhere"
 mkdir -p "$CONFIG_DIR"
-if [ ! -e "$CONFIG_DIR/config.json" ]; then
+LEGACY_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/ios-linux/config.json"
+if [ ! -e "$CONFIG_DIR/config.json" ] && [ ! -f "$LEGACY_CONFIG" ]; then
   cp config.example.json "$CONFIG_DIR/config.json"
 fi
 ```
 
-Edit `$CONFIG_DIR/config.json` (normally `~/.config/ios-linux/config.json`) to point `toolchain` at your prepared directory, and adjust `llvm_ar`/`installer` if needed. `TOOLCHAIN` above is a shell variable for setup commands; the CLI reads its toolchain path from this JSON file.
+Edit your existing configuration, or `$CONFIG_DIR/config.json` (normally `~/.config/ios-anywhere/config.json`) for a new installation, to point `toolchain` at your prepared directory, and adjust `llvm_ar`/`installer` if needed. `TOOLCHAIN` above is a shell variable for setup commands; the CLI reads its toolchain path from this JSON file.
 
 Run the check for the backend you prepared:
 
@@ -126,3 +127,11 @@ ios-anywhere --engine godot doctor
 
 If you already have an App Store IPA and only want to upload it, skip local compiler/toolchain setup and follow [Submit to Apple](../README.md#submit-to-apple).
 
+
+## Configuration compatibility
+
+Without `--config`, the CLI first looks for `ios-anywhere/config.json` under `XDG_CONFIG_HOME` (or `~/.config` when unset or empty). If it is absent, an existing `ios-linux/config.json` in that same root is used. When both exist, the new path wins; an invalid new file is reported rather than silently falling back. An explicit `--config` always takes precedence.
+
+The quick-start copy command leaves both existing configurations untouched and does not create a new default that would hide a legacy configuration. No automatic migration occurs. If you manually copy a legacy configuration, check any relative paths because they are resolved relative to the selected JSON file.
+
+For new installations, the example uses `~/.local/share/ios-anywhere/toolchain` and `~/.cache/ios-anywhere`. These are configured values, not discovery paths: existing JSON files keep their original toolchain and cache locations. Do not move or redownload a working toolchain merely to rename it. The `ios-linux` command alias, `ios_linux` Python module, and `IOS_LINUX_*` environment variables remain supported.
