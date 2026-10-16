@@ -1,4 +1,4 @@
-# Guided Godot setup
+# Guided toolchain setup
 
 Install the Python CLI first, activate its virtual environment, then run:
 
@@ -6,7 +6,7 @@ Install the Python CLI first, activate its virtual environment, then run:
 ios-anywhere setup
 ```
 
-The current assistant prepares **Godot 4.5.1 on Linux x86_64**, using system Clang 18, the Darwin linker, Godot's device libraries, an iPhoneOS 18.5 SDK, and zsign-wasm. Expo's Swift/macros/Ruby setup is still [manual](installation.md). Requesting `setup --engine expo` exits without changing files.
+The default assistant prepares **Godot 4.5.1 on Linux x86_64**, using system Clang 18, the Darwin linker, Godot's device libraries, an iPhoneOS 18.5 SDK, and zsign-wasm. For the experimental Expo recipe on Ubuntu 24.04, see [Expo setup](#expo-setup) below.
 
 ## What happens
 
@@ -80,3 +80,41 @@ idevicepair pair
 ```
 
 No rebuild is needed for an already signed IPA.
+
+## Expo setup
+
+The experimental Expo recipe requires **Ubuntu 24.04 x86_64**, Python 3.11.8+ or 3.12+, and **20 GiB free before downloads**, plus room for your project and build cache. It installs system packages through apt (sudo may be required). It does not use a previously built app or copy another project's native code.
+
+On a new installation:
+
+```sh
+ios-anywhere setup --engine expo
+```
+
+If a Godot or other toolchain already exists, keep it and choose **both** a new config and a new toolchain directory:
+
+```sh
+ios-anywhere --config "$HOME/.config/ios-anywhere/expo.json" \
+  setup --engine expo \
+  --toolchain "$HOME/.local/share/ios-anywhere/expo-toolchain"
+
+ios-anywhere --config "$HOME/.config/ios-anywhere/expo.json" --engine expo doctor
+```
+
+Use that same `--config` before `build` when building an Expo project. Setup does not merge toolchains or change your default config when an explicit new path is used.
+
+Choose the pinned unofficial SDK mirror interactively, or pass `--sdk-source mirror --yes`. For local SDKs, pass `--sdk-source local --sdk /path/to/sdks`; that folder must contain **both** `iPhoneOS26.4.sdk` and `iPhoneOS26.5.sdk`. The mirror-only UIKitCore workaround is applied only after checking the known file hash; local SDKs are not patched.
+
+The recipe installs:
+
+- Swift 6.4.0 for Ubuntu 24.04, Node 22.20.0, Darwin tools v1.1.0, and OpenAppleMacros v1.3.0 from versioned, SHA-256-checked downloads.
+- System Ruby 3.2 and CocoaPods 1.17.0. The Ruby layout points to Ubuntu's `/usr`; this toolchain cannot be moved to another OS without preparing those packages.
+- Expo macros 0.6.1 compiled for Linux using SwiftCompilerPlugin from swift-syntax commit `050f1a346fbbac0ca2cfb15a95274f7bd1cf0ccf`.
+- Darwin C++ interfaces adapted from the installed compiler, and a compatibility overlay rebuilt from Swift 6.2 commit `1ff1cc1170617ab23ab74aa8b741c8daca1903f6`.
+- npm zsign-wasm 0.0.4 and the iPhone USB utilities. Apple credentials are still supplied separately.
+
+The SDKs use the same pinned revision documented above. npm package versions and CocoaPods itself are pinned; their transitive dependencies and apt packages are not a fully reproducible lock. CocoaPods installation compiles dependencies and runs RubyGems installation hooks. Projects needing a different Expo macro implementation may need adaptation.
+
+Before publishing the toolchain, setup checks CocoaPods, compiles a UIKit Swift probe, links an arm64 Mach-O executable, and loads the signer. This is **not a full React Native app build**, a device launch, or App Store validation. Failures leave existing installations intact; verified download caches are retained for retries. No credentials are read during setup.
+
+Validation: SDK-free tests cover engine routing, publication only after checks pass, disk requirements, archive traversal rejection, overlay isolation, Node selection, and the mirror patch guard. Component checks use an existing compiler/SDK installation; the complete download-and-install recipe still needs a clean Ubuntu 24.04 test.

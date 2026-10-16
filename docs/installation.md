@@ -36,7 +36,7 @@ The commands below assume this repository is the current directory and the virtu
 
 ### 2. Prepare the external toolchain
 
-For a new **Godot** installation, [guided setup](setup.md) automates this step: run `ios-anywhere setup` before creating a config. It can import a local SDK or download an explicitly selected unofficial mirror. Existing installations are preserved. Expo and manually prepared installations use the instructions below.
+For a new **Godot** installation, run `ios-anywhere setup`. For **Expo on Ubuntu 24.04**, the experimental `ios-anywhere setup --engine expo` prepares the tools. See [guided setup](setup.md) before creating a config. It can import a local SDK or download an explicitly selected unofficial mirror. Existing installations are preserved. Other hosts and manually prepared installations use the instructions below.
 
 Use an existing compatible toolchain if you already have one. Otherwise, prepare the components below once, outside the repository and your app:
 
@@ -84,7 +84,7 @@ python3 ios_linux/scripts/prepare-runtime.py \
 
 Replace the source path with the `stdlib/public/Cxx` directory from the official [Swift 6.2 release sources](https://github.com/swiftlang/swift/tree/swift-6.2-RELEASE). Rebuild the overlay when changing Swift. See [runtime preparation](toolchain.md#runtime-objects) for details.
 
-**These Expo macro, Ruby-layout, and Darwin-overlay preparation steps are not automated by this repository.** The toolchain guide records their required inputs and layout, but is not yet a fully tested fresh-machine bootstrap recipe. Do not treat the commands above as a complete one-command toolchain installer.
+**The experimental Ubuntu 24.04 Expo setup automates these steps.** Its full clean-machine bootstrap has not yet been validated; see [setup scope](setup.md#expo-setup). The manual commands above record the required inputs and layout.
 
 **Godot-specific preparation**
 

@@ -1,6 +1,6 @@
 # External toolchain
 
-The CLI is independent of application projects. Experimental [guided Godot setup](setup.md) downloads tools and offers a local SDK import or an explicitly selected unofficial SDK mirror. Expo bootstrap **is still manual**. No toolchain or SDK binaries are included in the repository. External terms remain applicable.
+The CLI is independent of application projects. Experimental [guided Godot setup](setup.md) downloads tools and offers a local SDK import or an explicitly selected unofficial SDK mirror. An experimental [Expo setup](setup.md#expo-setup) prepares Swift, Node, Ruby/CocoaPods, macros, and compatibility overlays on Ubuntu 24.04; its full clean-machine validation is still pending. No toolchain or SDK binaries are included in the repository. External terms remain applicable.
 
 ## Expected layout
 

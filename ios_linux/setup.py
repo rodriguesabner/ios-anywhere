@@ -1,4 +1,4 @@
-"""Guided Godot setup, isolated from existing toolchains and signing credentials."""
+"""Guided Expo and Godot setup, isolated from existing toolchains and signing credentials."""
 
 import fcntl
 import hashlib
@@ -54,8 +54,8 @@ def sha256(path):
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
-def download(name, cache):
-    url, digest = DOWNLOADS[name]
+def download(name, cache, downloads=None):
+    url, digest = (DOWNLOADS if downloads is None else downloads)[name]
     destination = cache / url.rsplit("/", 1)[1]
     if destination.exists():
         if sha256(destination) != digest:
@@ -119,10 +119,10 @@ def install_tools(tools, cache):
     (tools / "ios.zip").unlink()
 
 
-def validate_sdk(path):
+def validate_sdk(path, version="18.5"):
     data = json.loads((path / "SDKSettings.json").read_text())
-    if str(data.get("Version")) != "18.5":
-        raise ValueError("Godot setup requires the iPhoneOS 18.5 SDK.")
+    if str(data.get("Version")) != version:
+        raise ValueError(f"Setup requires the iPhoneOS {version} SDK.")
     for name in ["usr/lib/libSystem.tbd", "usr/include/stdio.h", "System/Library/Frameworks"]:
         if not (path / name).exists():
             raise ValueError(f"Incomplete SDK: missing {name}")
@@ -131,12 +131,13 @@ def validate_sdk(path):
             raise ValueError(f"SDK contains a link outside its directory: {entry}")
 
 
-def install_sdk(tools, source, local):
-    print("[3/5] Preparing iPhoneOS 18.5 SDK", flush=True)
-    destination = tools / "sdks" / SDK_NAME
-    destination.parent.mkdir(parents=True)
+def install_sdk(tools, source, local, version="18.5"):
+    name = f"iPhoneOS{version}.sdk"
+    print(f"[3/5] Preparing {name}", flush=True)
+    destination = tools / "sdks" / name
+    destination.parent.mkdir(parents=True, exist_ok=True)
     if source == "local":
-        validate_sdk(local)
+        validate_sdk(local, version)
         shutil.copytree(local, destination, symlinks=True)
     else:
         checkout = tools / "sdk-checkout"
@@ -145,14 +146,14 @@ def install_sdk(tools, source, local):
         run(["git", "-C", checkout, "config", "remote.origin.promisor", "true"])
         run(["git", "-C", checkout, "config", "remote.origin.partialclonefilter", "blob:none"])
         run(["git", "-C", checkout, "fetch", "--depth=1", "--filter=blob:none", "origin", SDK_REVISION])
-        run(["git", "-C", checkout, "sparse-checkout", "set", SDK_NAME])
+        run(["git", "-C", checkout, "sparse-checkout", "set", name])
         run(["git", "-C", checkout, "checkout", "--detach", SDK_REVISION])
         revision = subprocess.check_output(["git", "-C", str(checkout), "rev-parse", "HEAD"], text=True).strip()
         if revision != SDK_REVISION:
             raise ValueError("SDK checkout revision mismatch.")
-        shutil.move(str(checkout / SDK_NAME), destination)
+        shutil.move(str(checkout / name), destination)
         shutil.rmtree(checkout)
-    validate_sdk(destination)
+    validate_sdk(destination, version)
 
 
 def smoke_test(tools):
@@ -177,22 +178,27 @@ def smoke_test(tools):
              tools / "signing/node_modules/zsign-wasm"])
 
 
-def check_space(path):
+def check_space(path, minimum=MIN_FREE_BYTES):
     while not path.exists():
         path = path.parent
     free = shutil.disk_usage(path).free
-    if free < MIN_FREE_BYTES:
-        raise ValueError(f"Setup needs at least 8 GiB free before downloads; available: {free / 1024**3:.1f} GiB. Free space or use --toolchain on another disk.")
+    if free < minimum:
+        raise ValueError(f"Setup needs at least {minimum // 1024**3} GiB free before downloads; available: {free / 1024**3:.1f} GiB. Free space or use --toolchain on another disk.")
 
 
 def setup(args):
-    if (args.setup_engine or args.engine or "godot") != "godot":
-        raise ValueError("Expo setup is not automated yet. See docs/installation.md; no files changed.")
+    engine = args.setup_engine or args.engine or "godot"
+    expo = None
+    if engine == "expo":
+        from . import setup_expo as expo
+        expo.check_host()
     if platform.system() != "Linux" or platform.machine() != "x86_64":
         raise ValueError("Guided setup currently supports Linux x86_64 only.")
     if not hasattr(tarfile, "data_filter"):
         raise ValueError("Setup requires Python with safe tar extraction filters (3.11.8+ or 3.12+).")
-    print("Godot setup (4.5.1). Expo setup is not automated yet.")
+    print(f"{engine.title()} setup. Existing configurations and credentials are preserved.")
+    versions = expo.SDK_VERSIONS if expo else ("18.5",)
+    sdk_label = "SDK folder containing iPhoneOS26.4.sdk and iPhoneOS26.5.sdk" if expo else "iPhoneOS18.5.sdk folder"
     config_path = (args.config or default_config()).expanduser().absolute()
     tools = (args.toolchain or Path.home() / ".local/share/ios-anywhere/toolchain").expanduser().absolute()
     for path in (config_path, tools):
@@ -209,7 +215,7 @@ def setup(args):
     if not source:
         if args.yes or not sys.stdin.isatty():
             raise ValueError("Choose --sdk-source local or --sdk-source mirror explicitly.")
-        print("SDK source:\n  1. Import a local iPhoneOS18.5.sdk\n  2. Download from the unofficial xybp888/iOS-SDKs mirror")
+        print(f"SDK source:\n  1. Import a local {sdk_label}\n  2. Download from the unofficial xybp888/iOS-SDKs mirror")
         choice = input("Choose [1/2]: ").strip()
         if choice not in ("1", "2"):
             raise ValueError("Choose 1 or 2.")
@@ -218,17 +224,24 @@ def setup(args):
     if source == "local":
         if local is None:
             if args.yes or not sys.stdin.isatty():
-                raise ValueError("Supply --sdk /path/to/iPhoneOS18.5.sdk.")
+                raise ValueError(f"Supply --sdk pointing to your {sdk_label}.")
             local = Path(input("SDK folder: ").strip())
         local = local.expanduser().resolve()
-        validate_sdk(local)
+        for version in versions:
+            validate_sdk(local / f"iPhoneOS{version}.sdk" if expo else local, version)
     else:
         print(f"Unofficial SDK source: {SDK_REPO}\nPinned revision: {SDK_REVISION}\nThis mirror is not Apple-authenticated. Apple SDK terms still apply.")
-    check_space(tools.parent)
+    if expo:
+        check_space(tools.parent, 20 * 1024**3)
+    else:
+        check_space(tools.parent)
     print(f"Toolchain: {tools}\nConfiguration: {config_path}\nDownloads are cached beside the toolchain and verified against pinned SHA-256 hashes.")
-    confirm("Install Godot tools and the selected SDK?", args.yes)
+    confirm(f"Install {engine.title()} tools and the selected SDKs?", args.yes)
     packages = {"clang-18": "clang-18", "curl": "curl", "git": "git", "node": "nodejs", "npm": "npm", "openssl": "openssl", "ideviceinstaller": "ideviceinstaller", "idevicepair": "libimobiledevice-utils", "usbmuxd": "usbmuxd"}
     missing = [package for command, package in packages.items() if not shutil.which(command)]
+    if expo:
+        # apt checks package installation too: shared libraries have no executable to probe.
+        missing = expo.PACKAGES
     if missing:
         if not shutil.which("apt-get"):
             raise ValueError("Install these system packages first: " + " ".join(missing))
@@ -251,15 +264,28 @@ def setup(args):
         with tempfile.TemporaryDirectory(prefix="." + tools.name + "-setup-", dir=tools.parent) as temp:
             staged = Path(temp) / "toolchain"
             staged.mkdir()
-            install_tools(staged, cache)
-            install_sdk(staged, source, local)
+            if expo:
+                expo.install_tools(staged, cache)
+                for version in versions:
+                    install_sdk(staged, source, local / f"iPhoneOS{version}.sdk" if local else None, version)
+                if source == "mirror":
+                    expo.patch_mirror_sdk(staged)
+                expo.prepare_runtime(staged)
+            else:
+                install_tools(staged, cache)
+                install_sdk(staged, source, local)
             print("[4/5] Installing zsign-wasm 0.0.4", flush=True)
-            run(["npm", "install", "--prefix", staged / "signing", "--save-exact", "--ignore-scripts", "--no-audit", "--no-fund", "zsign-wasm@0.0.4"])
-            smoke_test(staged)
+            run(["npm", "install", "--prefix", staged / "signing", "--save-exact", "--ignore-scripts", "--no-audit", "--no-fund", "zsign-wasm@0.0.4"], env=Config(staged, staged / "check-cache").env())
+            if expo:
+                expo.smoke_test(staged)
+            else:
+                smoke_test(staged)
             (staged / "setup-manifest.json").write_text(json.dumps({
-                "engine": "godot", "godot": "4.5.1", "clang": "system clang-18",
+                "engine": engine, "versions": {"swift": "6.4", "node": "22.20.0", "expo_macros": "0.6.1", "cocoapods": "1.17.0"} if expo else {"godot": "4.5.1", "clang": "system clang-18"},
+                "sdks": versions,
+                "cxx_revision": expo.CXX_REVISION if expo else None,
                 "sdk_source": source, "sdk_revision": SDK_REVISION if source == "mirror" else None,
-                "downloads": DOWNLOADS,
+                "downloads": {"linker": DOWNLOADS["linker"], **expo.DOWNLOADS} if expo else DOWNLOADS,
             }, indent=2) + "\n")
             # Publish only a toolchain that passes the native link check.
             if tools.exists() or tools.is_symlink():
@@ -267,6 +293,6 @@ def setup(args):
             staged.rename(tools)
         config_path.parent.mkdir(parents=True, exist_ok=True)
         with config_path.open("x") as config_file:
-            json.dump({"toolchain": str(tools), "cache": str(tools.parent / "build-cache")}, config_file, indent=2)
+            json.dump({"toolchain": str(tools), "cache": str(tools.parent / "build-cache"), "llvm_ar": "llvm-ar-18" if expo else "llvm-ar"}, config_file, indent=2)
             config_file.write("\n")
-    print(f"Setup complete. Config: {config_path}\nNative link passed; no IPA was signed or installed.\nNext: ios-anywhere --config {config_path} --engine godot doctor\nVerified downloads kept in {cache}; remove that directory to reclaim space when no setup is running.")
+    print(f"Setup complete. Config: {config_path}\nNative link passed; no IPA was signed or installed.\nNext: ios-anywhere --config {config_path} --engine {engine} doctor\nVerified downloads kept in {cache}; remove that directory to reclaim space when no setup is running.")
