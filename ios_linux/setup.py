@@ -68,7 +68,7 @@ def download(name, cache, downloads=None):
         return destination
     print(f"[download] {url}", flush=True)
     run(["curl", "--fail", "--location", "--proto", "=https", "--proto-redir", "=https",
-         "--retry", "3", "--connect-timeout", "30", "--continue-at", "-",
+         "--retry", "3", "--retry-all-errors", "--connect-timeout", "30", "--continue-at", "-",
          "--output", partial, url])
     if sha256(partial) != digest:
         partial.unlink()
