@@ -38,21 +38,48 @@ python -m pip install .
 
 Use Python 3.11.8+ or 3.12+. In a new terminal, activate this virtual environment again before using the CLI.
 
-**Prefer a guided menu?** Run:
+### Open the interactive CLI
 
 ```sh
 ios-anywhere
 ```
 
-Choose an action, engine, saved configuration, and project path with arrow keys and path completion. The menu can set up tools and signing, build, check tools, verify, or install an IPA using a saved iPhone. It shows the equivalent command before running it; the explicit commands below still work for scripts. Press Ctrl+C to cancel.
+```text
+? What do you want to do?
+  Set up build tools
+  Set up signing (Apple Ad Hoc profile)
+  Check tools (doctor)
+  Build an IPA
+  Verify an IPA
+  Install an IPA on iPhone
+  Export resources only
+  Exit
+```
+
+Use **↑ / ↓** to select, **Enter** to continue, and **Ctrl+C** to cancel. File and folder prompts offer path completion. The menu shows the equivalent command before running it.
+
+| Choose | What happens next |
+| --- | --- |
+| **Set up build tools** | Choose Expo or Godot, a new configuration file, toolchain folder and SDK source. |
+| **Set up signing** | Select a config, sign in to Apple, choose an existing certificate and iPhone, and create an Ad Hoc profile after confirmation. Bring your `.p12` and password. |
+| **Check tools (doctor)** | Choose the engine and matching config to check required tools. |
+| **Build an IPA** | Choose the engine, config, project folder, signing JSON and output path. Godot also asks for the bundle ID. |
+| **Verify an IPA** | Select an existing IPA to check its signature and integrity locally. |
+| **Install an IPA on iPhone** | Choose a config, IPA and saved iPhone, or enter and save another device. |
+| **Export resources only** | Generate JS/Hermes or Godot PCK resources without signing or installing an IPA. |
+
+**Keep configs separate:** use `expo.json` for Expo and `godot.json` for Godot. Selecting the wrong config can produce a list of missing tools even when the correct toolchain is installed.
+
+The five steps below show the same workflow with explicit commands. For a first run through the menu, follow **Set up build tools → Set up signing → Check tools → Build an IPA → Install an IPA on iPhone**.
 
 ## 2. Set up your build tools
 
 **Godot:** have at least **8 GiB free**, then run:
 
 ```sh
-ios-anywhere setup
-ios-anywhere --engine godot doctor
+ios-anywhere --config "$HOME/.config/ios-anywhere/godot.json" setup \
+  --engine godot --toolchain "$HOME/.local/share/ios-anywhere/godot-toolchain"
+ios-anywhere --config "$HOME/.config/ios-anywhere/godot.json" --engine godot doctor
 ```
 
 Follow the prompts to install the compiler, linker, Godot libraries, signer, and iPhone USB utilities. Choose your local iPhoneOS 18.5 SDK or the unofficial SDK mirror. The mirror is not Apple-authenticated; Apple SDK terms still apply. [Setup details and troubleshooting →](docs/setup.md)
@@ -60,11 +87,12 @@ Follow the prompts to install the compiler, linker, Godot libraries, signer, and
 **Expo (Ubuntu 24.04 x86_64):** have at least **20 GiB free**, then run:
 
 ```sh
-ios-anywhere setup --engine expo
-ios-anywhere --engine expo doctor
+ios-anywhere --config "$HOME/.config/ios-anywhere/expo.json" setup \
+  --engine expo --toolchain "$HOME/.local/share/ios-anywhere/expo-toolchain"
+ios-anywhere --config "$HOME/.config/ios-anywhere/expo.json" --engine expo doctor
 ```
 
-This installs Swift, Node, CocoaPods, macros, SDKs, and compatibility objects. It is **experimental**: component checks have been run, but the complete new installer has not yet been validated on a clean PC. If Godot is already installed, use [separate Expo config and toolchain paths](docs/setup.md#expo-setup) to preserve it. Other hosts can use the [manual guide](docs/installation.md#2-prepare-the-external-toolchain).
+This installs Swift, Node, CocoaPods, macros, SDKs, and compatibility objects. It is **experimental**: Expo Meatball Animation was built on another Linux PC and opened on an iPhone, but a fully clean-machine bootstrap has not been independently verified. These separate config/toolchain paths allow Expo and Godot to coexist. Existing installation paths are preserved; choose your saved config instead of rerunning setup over it. Other hosts can use the [manual guide](docs/installation.md#2-prepare-the-external-toolchain).
 
 <a id="signing-setup-and-device-preparation"></a>
 
@@ -96,19 +124,7 @@ $HOME/private-signing/my-app/
 └── app.mobileprovision
 ```
 
-Use this structure for `credentials.json`, replacing the password locally:
-
-```json
-{
-  "ios": {
-    "provisioningProfilePath": "app.mobileprovision",
-    "distributionCertificate": {
-      "path": "distribution.p12",
-      "password": "YOUR_P12_PASSWORD"
-    }
-  }
-}
-```
+The signing assistant writes this JSON for you. For existing files, follow the [credentials format and manual setup](docs/signing.md). Keep passwords, certificates and profiles outside your repository.
 
 **Prefer manual setup?** Follow the [Apple portal steps or provisioning script](docs/signing.md#godot-create-a-profile-for-your-own-bundle-id). Build-tool `setup` and Apple `signing-setup` are separate steps.
 
@@ -123,11 +139,11 @@ Choose your engine and replace the example paths. Use a new output filename for 
 **Godot** — the project folder must contain `project.godot`:
 
 ```sh
-ios-anywhere --engine godot \
+ios-anywhere --config "$HOME/.config/ios-anywhere/godot.json" --engine godot \
   --project "$HOME/my-game" \
   --bundle-id com.example.mygame \
   --credentials "$HOME/private-signing/my-app/credentials.json" \
-  build --output "$HOME/MyApp-01.ipa"
+  build --output "$HOME/my-game/iosapp.ipa"
 ```
 
 Replace `com.example.mygame` with the **exact bundle ID authorized by your profile**. Use Godot 4.5.1 / GDScript without C# or GDExtensions.
@@ -137,29 +153,77 @@ Replace `com.example.mygame` with the **exact bundle ID authorized by your profi
 **Expo** — the project needs `package.json`, `package-lock.json`, and `ios.bundleIdentifier` in its Expo configuration:
 
 ```sh
-ios-anywhere --engine expo \
+ios-anywhere --config "$HOME/.config/ios-anywhere/expo.json" --engine expo \
   --project "$HOME/my-app" \
   --credentials "$HOME/private-signing/my-app/credentials.json" \
-  build --output "$HOME/MyApp-01.ipa"
+  build --output "$HOME/my-app/iosapp.ipa"
 ```
+
+For Expo, merge the matching ID into your existing `app.json` (do not replace the rest of the file):
+
+```json
+{
+  "expo": {
+    "ios": {
+      "bundleIdentifier": "com.example.myapp"
+    }
+  }
+}
+```
+
+Use the ID authorized by your provisioning profile. If you have `app.config.js` or `app.config.ts`, ensure the resolved configuration uses that ID. A mismatch stops verification with `Profile identity differs from app`.
+
+The menu suggests `<project>/iosapp.ipa`. Existing IPA files are never overwritten: choose a new filename for another build.
 
 The CLI builds an isolated copy and publishes the IPA only after signing and verification. Build trusted projects: their scripts and dependencies execute locally.
 
 ## 5. Install on your iPhone
 
-Keep the iPhone connected and unlocked. Replace the UDID below with the value from step 3:
+In the menu, choose **Install an IPA on iPhone**, select the IPA, then choose your saved device by name. The CLI checks that its UDID is included in every embedded app/extension profile. Keep the iPhone connected, unlocked and paired.
+
+For an explicit command, replace the UDID and IPA path below. For Godot, use your game folder and `godot.json` instead of `expo.json`:
 
 ```sh
 UDID="YOUR_IPHONE_UDID"
+IPA="$HOME/my-app/iosapp.ipa"
 idevicepair -u "$UDID" pair
 
-IOS_LINUX_UDID="$UDID" ios-anywhere verify "$HOME/MyApp-01.ipa"
-ios-anywhere install "$HOME/MyApp-01.ipa" --udid "$UDID"
+IOS_LINUX_UDID="$UDID" ios-anywhere verify "$IPA"
+ios-anywhere --config "$HOME/.config/ios-anywhere/expo.json" install "$IPA" --udid "$UDID"
 ```
 
 Open the app on your iPhone. Installing with the same bundle ID updates the existing app.
 
 **Have fun!** 🎉
+
+## CLI reference
+
+```sh
+ios-anywhere --help
+ios-anywhere setup --help
+ios-anywhere signing-setup --help
+ios-anywhere build --help
+ios-anywhere install --help
+```
+
+Global options go **before** the command: `--config`, `--engine`, `--project`, `--credentials`, and Godot's `--bundle-id`. Command-specific options such as `build --output` and `install --udid` go after it. `verify` does not require a toolchain config.
+
+To export resources only, use the same config/engine/project options as your build and replace `build --output ...` with `bundle`; signing credentials are not needed.
+
+### Update the CLI
+
+From your existing clone, with its virtual environment activated:
+
+```sh
+git pull --ff-only
+python -m pip install .
+```
+
+A Git update alone does not update a non-editable Python installation. Keep your saved configs and toolchains; a CLI update does not normally require downloading them again.
+
+### If a build fails
+
+Open the log path printed for the failing step. Signing and verification details are in `sign.log` and `verify.log` inside that build's cache directory. Fix the reported cause and rerun with the same config and project. Keep the cache unless troubleshooting specifically requires removing it.
 
 <a id="submit-to-apple"></a>
 
@@ -208,7 +272,7 @@ Built on Linux and tested on a real iPhone:
 | Widgets and extensions | Not supported by the generic CLI workflow. |
 | App Store | Upload tested; Apple processing, review, and publication remain unverified. Precompiled asset catalogs are required. |
 
-The second-PC test required manually installing the USB utilities, now included in setup. The revised setup has automated coverage but has not been rerun end to end on that PC. CI checks code, not device execution. [Test evidence and limits →](docs/validation.md)
+The initial Godot second-PC test required manually installing USB utilities, now included in setup. Later Expo testing confirmed installation and initial UI rendering after the documented compatibility fixes. These are project-specific results; CI checks code, not device execution. [Test evidence and limits →](docs/validation.md)
 
 ## Documentation
 
