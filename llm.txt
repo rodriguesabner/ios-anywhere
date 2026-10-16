@@ -5,6 +5,7 @@ Experimental local iOS compilation, signing, verification, and installation on L
 ## Read first
 
 - README.md: installation, commands, capabilities, limits, and Apple submission.
+- docs/ci.md: manual prepared-runner IPA workflow, security gates, and unverified CI-build scope.
 - docs/toolchain.md: external tools and manual setup.
 - docs/architecture.md: project isolation and implementation boundaries.
 - docs/validation.md: observed results and unverified behavior.

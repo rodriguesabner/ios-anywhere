@@ -1,0 +1,78 @@
+name: Build IPA (prepared runner)
+
+# Never add pull_request, pull_request_target, push, or workflow_run here.
+on:
+  workflow_dispatch:
+    inputs:
+      engine:
+        description: Bundled example to build with your signing identity
+        type: choice
+        options: [godot, expo]
+        default: godot
+        required: true
+
+      upload_ipa:
+        description: Upload IPA to repository readers (includes profile and device IDs)
+        type: boolean
+        default: false
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-anywhere-signing
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # Do not execute arbitrary dispatch refs, tags, or fork copies of this workflow.
+    if: github.repository == 'rodriguesabner/ios-anywhere' && github.ref == 'refs/heads/main'
+    environment: ios-build
+    runs-on: [self-hosted, Linux, X64, ios-anywhere]
+    timeout-minutes: 90
+    env:
+      IOS_ANYWHERE_CONFIG: ${{ vars.IOS_ANYWHERE_CONFIG }}
+      IOS_ANYWHERE_CREDENTIALS: ${{ vars.IOS_ANYWHERE_CREDENTIALS }}
+      IOS_ANYWHERE_BUNDLE_ID: ${{ vars.IOS_ANYWHERE_BUNDLE_ID }}
+      BUILD_ENGINE: ${{ inputs.engine }}
+    steps:
+      - name: Check out the reviewed dispatch commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Install CLI in a disposable virtual environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          work="$(mktemp -d "$RUNNER_TEMP/ios-anywhere-job.XXXXXXXX")"
+          echo "CI_JOB_DIR=$work" >> "$GITHUB_ENV"
+          python3 -m venv "$work/venv"
+          "$work/venv/bin/python" -m pip install --no-cache-dir .
+      - name: Preflight, compile, sign, and locally verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir "$CI_JOB_DIR/tmp" "$CI_JOB_DIR/artifacts"
+          export TMPDIR="$CI_JOB_DIR/tmp"
+          "$CI_JOB_DIR/venv/bin/python" scripts/ci_build.py \
+            --engine "$BUILD_ENGINE" --output "$CI_JOB_DIR/artifacts/app.ipa"
+      - name: Upload only the signed IPA (explicit audience approval)
+        if: inputs.upload_ipa
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ipa-${{ inputs.engine }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.CI_JOB_DIR }}/artifacts/app.ipa
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+      - name: Remove disposable environment and private build state
+        if: always()
+        shell: bash
+        run: |
+          if [[ -n "${CI_JOB_DIR:-}" && "$CI_JOB_DIR" == "$RUNNER_TEMP"/ios-anywhere-job.* ]]; then
+            rm -rf -- "$CI_JOB_DIR"
+          fi

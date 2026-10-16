@@ -121,6 +121,10 @@ ios-anywhere --engine godot \
 
 The source directory must contain `project.godot`. The backend exports a fresh PCK, links the iOS arm64 engine installed in the toolchain, and applies the project's identity, name, orientation, and PNG icon. Match editor and engine versions; the validated environment uses Godot 4.5.1.
 
+## GitHub Actions pipeline
+
+A [manual IPA build workflow](.github/workflows/build-ipa.yml) can build either bundled example on a prepared Linux x86_64 runner and optionally save the signed IPA as an artifact after explicit audience approval. Configure the external toolchain, signing paths, and protected runner/environment first: [CI setup and security](docs/ci.md). It does not bootstrap Apple SDKs on a blank hosted runner or submit to Apple.
+
 ## Verify and install
 
 ```sh
@@ -232,6 +236,7 @@ See [Validation](docs/validation.md) for real-world checks and [Architecture](do
 
 ## Documentation
 
+- [GitHub Actions builds](docs/ci.md)
 - [Installation details](docs/installation.md)
 - [Signing credentials and device setup](docs/signing.md)
 - [Toolchain setup](docs/toolchain.md)
