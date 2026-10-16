@@ -144,3 +144,21 @@ Veja [docs/validation.md](docs/validation.md) para os testes reais e [docs/archi
 - [Validação e testes em aparelho](docs/validation.md)
 - [Dependências e avisos de terceiros](THIRD_PARTY.md)
 - [Prompt para criar o site](docs/website-prompt.md)
+
+## Disclaimer
+
+Veja [DISCLAIMER.md](DISCLAIMER.md) para orientações de uso responsável, aplicáveis a todas as versões, plataformas e canais de distribuição do ios-anywhere. Cada cópia mantém suas licenças aplicáveis.
+
+O projeto destina-se ao desenvolvimento, à pesquisa, à educação, à interoperabilidade e à preservação de software que você possui ou está autorizado a usar, modificar e distribuir. A assinatura exige credenciais válidas; o CLI não concede direitos de distribuição nem aprovação na App Store.
+
+## Contributing
+
+Contribuições são bem-vindas! [Abra uma issue](https://github.com/rodriguesabner/ios-anywhere/issues) para relatar um bug ou sugerir uma melhoria, ou [envie um pull request](https://github.com/rodriguesabner/ios-anywhere/pulls) com alterações no código ou na documentação. O acesso depende das permissões do repositório privado.
+
+Veja [CONTRIBUTING.md](CONTRIBUTING.md) para preparar o ambiente e executar as verificações, [Validação](docs/validation.md) para o escopo dos testes e [Arquitetura](docs/architecture.md) para a estrutura do projeto.
+
+## License
+
+O código próprio do ios-anywhere é licenciado sob a [MIT](LICENSE). Material de terceiros mantém suas licenças e avisos de copyright; veja [Componentes de terceiros](THIRD_PARTY.md).
+
+**Você deve obter e estar autorizado a usar as ferramentas e os SDKs externos**, incluindo os SDKs Apple e as dependências da toolchain, conforme seus respectivos termos. O ios-anywhere não concede licença de ferramenta, chave ou direito de ativação. Cópias não autorizadas, chaves roubadas, compartilhamento indevido de credenciais e contorno de restrições de licença não são autorizados pelo projeto. Essa orientação não modifica a MIT nem as licenças de terceiros.
