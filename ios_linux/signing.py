@@ -88,3 +88,29 @@ def package(config, app, output, credentials, log_dir):
             raise
 
     print(f"IPA signed and verified: {output}")
+
+
+def check_identity(credentials, bundle_id):
+    """Check profile identity only; final signature verification remains mandatory."""
+    import plistlib
+    check_credentials(credentials)
+    data = json.loads(credentials.read_text())['ios']
+    entries = [data] if 'distributionCertificate' in data else list(data.values())
+    identities = []
+    for entry in entries:
+        profile = credentials.parent / entry['provisioningProfilePath']
+        result = subprocess.run(['openssl', 'cms', '-verify', '-inform', 'DER', '-noverify',
+                                 '-in', str(profile)], capture_output=True)
+        if result.returncode:
+            raise ValueError(f'Cannot decode provisioning profile: {profile.name}')
+        try:
+            identity = plistlib.loads(result.stdout)['Entitlements']['application-identifier']
+            identifier = identity.split('.', 1)[1]
+        except (ValueError, KeyError, IndexError, TypeError, AttributeError) as error:
+            raise ValueError(f'Invalid profile application identifier: {profile.name}') from error
+        identities.append(identifier)
+    if bundle_id not in identities:
+        raise ValueError(f'Bundle ID {bundle_id!r} does not match the provisioning profile(s): '
+                         f'{", ".join(identities)}. Set ios.bundleIdentifier in the Expo config '
+                         '(or --bundle-id for Godot), or choose credentials for this app. '
+                         'An exact app profile is required by this signing pipeline.')

@@ -27,6 +27,9 @@ def setup(config, output):
                 and json.loads((helper / 'node_modules' / name / 'package.json').read_text())['version'] == version
                 for name, version in DEPENDENCIES.items())
     if not ready:
+        print('Signing needs a one-time download of @expo/apple-utils and prompts.\n'
+              'These helpers talk to your Apple Developer account; this does not build on EAS.\n'
+              'Apple account changes are confirmed separately. Choosing No stops signing setup.')
         if not ask('confirm', 'Install Apple provisioning helpers from npm (@expo/apple-utils and prompts)?', default=False):
             return
         helper.mkdir(parents=True, exist_ok=True)
