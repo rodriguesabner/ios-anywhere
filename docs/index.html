@@ -174,7 +174,7 @@
           <tr><td>Widgets and extensions</td><td>Not yet part of this CLI's generic flow.</td></tr>
           <tr><td>Godot C# / GDExtensions</td><td>Not supported — GDScript with the standard engine only.</td></tr>
           <tr><td>Host system</td><td>Linux x86_64 validated. Windows and macOS have not been validated.</td></tr>
-          <tr><td>App Store</td><td>Experimental; upload is not the same as processing or approval. A precompiled asset catalog is still required.</td></tr>
+          <tr><td>App Store</td><td>Upload tested with CS Callouts; Apple processing and approval remain unverified. A precompiled asset catalog is still required.</td></tr>
         </tbody>
       </table>
     </div>
@@ -232,7 +232,7 @@ npx eas-cli submit --platform ios --profile production --path /path/to/MyApp-App
     <h2>Give your agent the right context</h2>
     <p class="lead">Use the AI guide alongside the source code. It describes the command contract, toolchain boundaries, credential handling, checks, and validated limitations.</p>
     <p><a class="link" href="https://github.com/rodriguesabner/ios-anywhere/blob/main/llm.txt">Read llm.txt</a> · <a class="link" href="https://github.com/rodriguesabner/ios-anywhere/blob/main/README.md">Read the documentation</a></p>
-    <p class="soft">Repository links require access while the repository is private. The website itself does not compile apps, receive credentials, or upload binaries.</p>
+    <p class="soft">The website itself does not compile apps, receive credentials, or upload binaries.</p>
   </section>
 
   <section class="wrap">
@@ -243,7 +243,7 @@ npx eas-cli submit --platform ios --profile production --path /path/to/MyApp-App
       <div><h3>Does it use EAS Build?</h3><p>No. The Expo backend uses local tools from the Expo ecosystem. Submitting the IPA to a store is a separate step.</p></div>
       <div><h3>Do I need an Apple certificate?</h3><p>Yes. The CLI signs with your credentials and respects the provisioning profile's restrictions — it does not replace a certificate.</p></div>
       <div><h3>Does it work with any app?</h3><p>No. The backends cover the documented paths. Projects with different native features need their own validation.</p></div>
-      <div><h3>Can I submit to the App Store?</h3><p>It is experimental. Upload is not the same as processing or approval by Apple, and precompiled asset catalogs are still required.</p></div>
+      <div><h3>Can I submit to the App Store?</h3><p>Upload to Apple has been tested with CS Callouts, using a Linux-built executable and an asset catalog reused from an EAS build of the same app. Apple processing, TestFlight availability, App Review, and publication remain unverified; precompiled asset catalogs are still required.</p></div>
     </div>
   </section>
 </main>

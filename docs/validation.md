@@ -21,15 +21,23 @@ This validates the minimal examples on the tested device. It is not exhaustive t
 
 ## Not verified
 
-Full bootstrap on a clean machine; other compiler/SDK combinations; Linux arm64; older iOS versions; purchases, ads, and App Store distribution. Local CMS verification does not query Apple trust or revocation status.
+Full bootstrap on a clean machine; other compiler/SDK combinations; Linux arm64; older iOS versions; purchases, ads, Apple processing, TestFlight availability, App Review, and App Store publication. Upload to Apple has been tested separately; see the CS Callouts example below. Local CMS verification does not query Apple trust or revocation status.
 
 ## Distribution metadata and version 0.2.1
 
 - The Expo backend records device family and the SDK actually used for linking without inventing an Xcode version.
 - Packaging preserves precompiled asset catalogs and icons. Generating Assets.car on Linux has not been implemented.
-- The CS Callouts experiment uploaded an IPA containing a Linux-built executable and an asset catalog reused from an EAS build of the same app. Completed upload does not confirm Apple processing or approval; that final confirmation was not verified.
+- Upload to Apple was tested with CS Callouts; see the result and scope below.
 - All 13 automated tests passed again, including metadata and icon preservation checks.
 - The public name became ios-anywhere. The previous command, Python module, and configuration paths were preserved.
+
+## Apple upload example: CS Callouts
+
+The CS Callouts experiment uploaded an IPA to Apple containing a Linux-built executable and an asset catalog reused from an EAS build of the same app. This is a completed upload test, not merely a proposed submission workflow.
+
+The documented result establishes the upload stage. Apple processing, TestFlight availability, submission for App Review, review approval, and App Store publication have not been verified. The reused asset catalog also means this experiment does not validate generating Assets.car on Linux.
+
+See the [submission commands and requirements](../README.md#submit-to-apple).
 
 ## Continuous Expo demonstration
 

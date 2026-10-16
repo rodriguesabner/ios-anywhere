@@ -32,7 +32,7 @@ Expo / Godot project → local compilation → signing → IPA → iPhone
 | Godot | GDScript with engine 4.5.1; examples built and tested on iPhone. |
 | Signing | Valid certificate and provisioning profile supplied by the user. |
 | Widgets and extensions | Not supported by the generic CLI workflow yet. |
-| App Store | Experimental; upload does not prove processing or approval. Precompiled assets are still required. |
+| App Store | Upload tested with CS Callouts; Apple processing and approval remain unverified. Precompiled assets are still required. |
 | Host systems | Linux x86_64 validated. Windows and macOS have not been validated. |
 
 See [Validation](docs/validation.md) for evidence and test scope.
@@ -104,6 +104,8 @@ ios-anywhere install /path/to/MyApp-01.ipa --udid YOUR_UDID
 `build` writes the final IPA only after signing and verification. Existing output files are rejected. Installation is separate. `bundle` prepares resources without signing. Global options (`--project`, `--credentials`, `--engine`, `--config`) precede the subcommand.
 
 ## Submit to Apple
+
+**Upload has been tested:** the CS Callouts experiment sent an IPA with a Linux-built executable to Apple, using an asset catalog reused from an EAS build of the same app. See the [documented upload result](docs/validation.md#apple-upload-example-cs-callouts). Apple processing, TestFlight availability, App Review, and publication have not been verified by that result.
 
 Upload an existing production IPA through **EAS Submit**, from your app's EAS-configured project directory:
 
@@ -187,7 +189,7 @@ The project is intended for development, research, education, interoperability, 
 
 ## Contributing
 
-Contributions are welcome! [Open an issue](https://github.com/rodriguesabner/ios-anywhere/issues) to report a bug or suggest a feature, or [send a pull request](https://github.com/rodriguesabner/ios-anywhere/pulls) to improve the code or docs. Access requires permission to this private repository.
+Contributions are welcome! [Open an issue](https://github.com/rodriguesabner/ios-anywhere/issues) to report a bug or suggest a feature, or [send a pull request](https://github.com/rodriguesabner/ios-anywhere/pulls) to improve the code or docs.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and checks, [Validation](docs/validation.md) for test scope, and [Architecture](docs/architecture.md) for project structure.
 
