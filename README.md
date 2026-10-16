@@ -46,31 +46,31 @@ ios-anywhere
 
 ```text
 ? What do you want to do?
-  Set up build tools
-  Set up signing (Apple Ad Hoc profile)
-  Check tools (doctor)
+  Get started — guided setup, build and install
   Build an IPA
-  Verify an IPA
-  Install an IPA on iPhone
-  Export resources only
+  Install on iPhone
+  Manage signing & devices
+  Advanced
   Exit
 ```
 
-Use **↑ / ↓** to select, **Enter** to continue, and **Ctrl+C** to cancel. File and folder prompts offer path completion. The menu shows the equivalent command before running it.
+**First time? Choose Get started.** The guide walks through engine → existing tools or setup → tools check → project → existing credentials or Apple signing setup → build → optional installation. Review and change your project, credentials or output before building. The default output is `<project>/iosapp.ipa`.
+
+Use **↑ / ↓** to select, **Enter** to continue, and **Ctrl+C** to cancel. File and folder prompts offer path completion. Choices stay available during retries in the current guided session; they are not saved across restarts. Saved iPhones are reused across sessions. A failed installation can be retried without rebuilding.
 
 | Choose | What happens next |
 | --- | --- |
-| **Set up build tools** | Choose Expo or Godot, a new configuration file, toolchain folder and SDK source. |
-| **Set up signing** | Select a config, sign in to Apple, choose an existing certificate and iPhone, and create an Ad Hoc profile after confirmation. Bring your `.p12` and password. |
-| **Check tools (doctor)** | Choose the engine and matching config to check required tools. |
-| **Build an IPA** | Choose the engine, config, project folder, signing JSON and output path. Godot also asks for the bundle ID. |
-| **Verify an IPA** | Select an existing IPA to check its signature and integrity locally. |
-| **Install an IPA on iPhone** | Choose a config, IPA and saved iPhone, or enter and save another device. |
-| **Export resources only** | Generate JS/Hermes or Godot PCK resources without signing or installing an IPA. |
+| **Get started** | Follow the guided workflow, reusing existing tools and credentials where available. |
+| **Build an IPA** | Choose engine, config, project, signing JSON and output. |
+| **Install on iPhone** | Choose an IPA and a saved iPhone, or save another device. |
+| **Manage signing & devices** | Create Apple signing credentials, or choose/save an iPhone. |
+| **Advanced** | Set up build tools, check tools (doctor), verify an IPA, or export resources only. |
 
-**Keep configs separate:** use `expo.json` for Expo and `godot.json` for Godot. Selecting the wrong config can produce a list of missing tools even when the correct toolchain is installed.
+**Which configuration?** A config locates your installed tools; it is not your Apple credentials. The selector shows its name, toolchain folder and config path. Use `expo.json` for Expo and `godot.json` for Godot; older `config.json` installations keep their original name. The guided flow checks the selected tools before building.
 
-The five steps below show the same workflow with explicit commands. For a first run through the menu, follow **Set up build tools → Set up signing → Check tools → Build an IPA → Install an IPA on iPhone**.
+**Which signing folder?** Choose a new private folder outside your project, such as `~/private-signing/my-app`. The signing assistant saves the certificate, profile and `credentials.json` there. If you already have these files, select **Use an existing credentials.json** instead. The first signing setup asks to download npm helpers that communicate with Apple; this does not start an EAS build. Apple resource creation requires a separate confirmation.
+
+The five steps below show the same workflow with explicit commands.
 
 ## 2. Set up your build tools
 
@@ -104,7 +104,7 @@ Connect and unlock your iPhone, accept **Trust This Computer**, and get its UDID
 idevice_id -l
 ```
 
-Choose **Set up signing** in the menu, or run:
+Choose **Manage signing & devices → Create Apple signing credentials** in the menu, or run:
 
 ```sh
 ios-anywhere --config "$HOME/.config/ios-anywhere/expo.json" \

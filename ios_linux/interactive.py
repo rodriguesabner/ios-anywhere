@@ -1,6 +1,7 @@
 """Terminal prompts that produce the same arguments as the explicit CLI."""
 
 import os
+import json
 from pathlib import Path
 import shlex
 
@@ -49,35 +50,72 @@ def select_config():
     paths = configurations()
     if not paths:
         print('No saved configurations found. Run setup first, or select a config stored elsewhere.')
-    selected = choose('Configuration', [(str(p), str(p)) for p in paths] + [('Enter another config path', 'custom')])
+    print('A configuration points to installed build tools. It does not contain your Apple signing credentials.')
+    selected = choose('Which installed tools should we use?', [(config_label(p), str(p)) for p in paths] + [('Enter another config path', 'custom')])
     return path_prompt('Configuration file', 'file') if selected == 'custom' else selected
 
 
-def arguments():
+def config_label(path):
+    try:
+        tools = json.loads(path.read_text()).get('toolchain', 'not configured')
+    except (OSError, ValueError, AttributeError):
+        return f'{path.name} — unreadable configuration ({path})'
+    name = {'expo': 'Expo / React Native', 'godot': 'Godot'}.get(path.stem, path.stem)
+    return f'{name} — tools: {tools} ({path})'
+
+
+def signing_folder(default=None):
+    print('Save the Apple certificate, provisioning profile and credentials.json in a NEW private folder.\n'
+          'This is an output folder, not your project. Keep it outside Git and do not share it.')
+    return path_prompt('Where should we save your signing files?', 'new',
+                       default or Path.home() / 'private-signing/my-app')
+
+
+def menu():
+    while True:
+        action = choose('What do you want to do?', [
+            ('Get started — guided setup, build and install', 'guided'),
+            ('Build an IPA', 'build'), ('Install on iPhone', 'install'),
+            ('Manage signing & devices', 'manage'), ('Advanced', 'advanced'), ('Exit', 'exit')])
+        if action in ('manage', 'advanced'):
+            choices = ([('Create Apple signing credentials', 'signing-setup'),
+                        ('Choose or save an iPhone', 'device')] if action == 'manage' else
+                       [('Set up build tools', 'setup'), ('Check tools (doctor)', 'doctor'),
+                        ('Verify an IPA', 'verify'), ('Export resources only', 'bundle')])
+            action = choose('Choose an action', choices + [('Back', 'back')])
+            if action == 'back':
+                continue
+        return action
+
+
+def arguments(action=None, engine=None, config=None):
+
     print('ios-anywhere — local iOS builds\nUse arrow keys to choose, Enter to continue, Ctrl+C to cancel.\n')
-    action = choose('What do you want to do?', [
-        ('Set up build tools', 'setup'), ('Set up signing (Apple Ad Hoc profile)', 'signing-setup'),
-        ('Check tools (doctor)', 'doctor'),
-        ('Build an IPA', 'build'), ('Verify an IPA', 'verify'),
-        ('Install an IPA on iPhone', 'install'), ('Export resources only', 'bundle'),
-        ('Exit', 'exit'),
-    ])
+    action = action or menu()
+    while action == 'guided':
+        from .wizard import run
+        run()
+        action = menu()
+    if action == 'device':
+        from .devices import select
+        select()
+        return None
     if action == 'exit':
         return None
     if action == 'verify':
         argv = ['verify', path_prompt('IPA file', 'file')]
     elif action == 'signing-setup':
-        config = select_config()
-        output = path_prompt('New private signing folder', 'new', Path.home() / 'private-signing/my-app')
+        config = config or select_config()
+        output = signing_folder()
         argv = ['--config', config, 'signing-setup', '--output', output]
     elif action == 'install':
-        config = select_config()
+        config = config or select_config()
         ipa = path_prompt('IPA file', 'file')
         from .devices import select
         udid = select()
         argv = ['--config', config, 'install', ipa, '--udid', udid]
     else:
-        engine = choose('Engine', [('Expo / React Native', 'expo'), ('Godot / GDScript', 'godot')])
+        engine = engine or choose('Engine', [('Expo / React Native', 'expo'), ('Godot / GDScript', 'godot')])
         if action == 'setup':
             root = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / '.config').expanduser()
             print('Setup creates a new installation. Existing configs and toolchains are preserved.')
@@ -89,7 +127,7 @@ def arguments():
                 label = 'Folder containing iPhoneOS26.4.sdk and iPhoneOS26.5.sdk' if engine == 'expo' else 'iPhoneOS18.5.sdk folder'
                 argv += ['--sdk', path_prompt(label, 'directory')]
         else:
-            argv = ['--config', select_config(), '--engine', engine]
+            argv = ['--config', config or select_config(), '--engine', engine]
             if action == 'doctor':
                 argv += ['doctor']
             else:
