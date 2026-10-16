@@ -56,7 +56,8 @@ def select_config():
 def arguments():
     print('ios-anywhere — local iOS builds\nUse arrow keys to choose, Enter to continue, Ctrl+C to cancel.\n')
     action = choose('What do you want to do?', [
-        ('Set up build tools', 'setup'), ('Check tools (doctor)', 'doctor'),
+        ('Set up build tools', 'setup'), ('Set up signing (Apple Ad Hoc profile)', 'signing-setup'),
+        ('Check tools (doctor)', 'doctor'),
         ('Build an IPA', 'build'), ('Verify an IPA', 'verify'),
         ('Install an IPA on iPhone', 'install'), ('Export resources only', 'bundle'),
         ('Exit', 'exit'),
@@ -65,10 +66,15 @@ def arguments():
         return None
     if action == 'verify':
         argv = ['verify', path_prompt('IPA file', 'file')]
+    elif action == 'signing-setup':
+        config = select_config()
+        output = path_prompt('New private signing folder', 'new', Path.home() / 'private-signing/my-app')
+        argv = ['--config', config, 'signing-setup', '--output', output]
     elif action == 'install':
         config = select_config()
         ipa = path_prompt('IPA file', 'file')
-        udid = ask('text', 'iPhone UDID (idevice_id -l)', validate=lambda v: bool(v.strip()) or 'Enter the device UDID.').strip()
+        from .devices import select
+        udid = select()
         argv = ['--config', config, 'install', ipa, '--udid', udid]
     else:
         engine = choose('Engine', [('Expo / React Native', 'expo'), ('Godot / GDScript', 'godot')])

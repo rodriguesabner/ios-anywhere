@@ -36,6 +36,8 @@ def parser():
     setup.add_argument("--sdk-source", choices=["local", "mirror"], help="Import a local SDK or use the unofficial pinned mirror")
     setup.add_argument("--sdk", type=Path, help="Godot: iPhoneOS18.5.sdk; Expo: parent folder containing iPhoneOS26.4.sdk and iPhoneOS26.5.sdk")
     setup.add_argument("--yes", action="store_true", help="Accept tool downloads and missing apt packages; requires --sdk-source")
+    signing_setup = sub.add_parser("signing-setup", help="Create an Ad Hoc profile using an existing Apple distribution certificate")
+    signing_setup.add_argument("--output", type=Path, required=True, help="New private signing folder")
     sub.add_parser("doctor", help="Check tools without requiring a project")
     sub.add_parser("bundle", help="Generate JS/Hermes or PCK resources without signing")
     build = sub.add_parser("build", help="Prepare, compile, sign, and verify")
@@ -88,6 +90,11 @@ def execute(argv=None):
 
     config = Config.load(args.config)
 
+    if args.command == "signing-setup":
+        from .provisioning import setup
+        setup(config, args.output)
+        return
+
     if args.command == "install":
         if not args.ipa.is_file():
             raise ValueError("IPA not found.")
@@ -98,6 +105,10 @@ def execute(argv=None):
                 "On Ubuntu/Debian run: sudo apt-get install ideviceinstaller libimobiledevice-utils usbmuxd. "
                 "Then connect and unlock the iPhone and run idevicepair pair."
             )
+
+        from .devices import validate_udid, check_ipa
+        args.udid = validate_udid(args.udid)
+        check_ipa(args.ipa, args.udid)
 
         env = dict(os.environ)
 

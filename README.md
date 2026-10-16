@@ -44,7 +44,7 @@ Use Python 3.11.8+ or 3.12+. In a new terminal, activate this virtual environmen
 ios-anywhere
 ```
 
-Choose an action, engine, saved configuration, and project path with arrow keys and path completion. The menu can start setup, build, check tools, verify, or install an IPA. It shows the equivalent command before running it; the explicit commands below still work for scripts. Press Ctrl+C to cancel.
+Choose an action, engine, saved configuration, and project path with arrow keys and path completion. The menu can set up tools and signing, build, check tools, verify, or install an IPA using a saved iPhone. It shows the equivalent command before running it; the explicit commands below still work for scripts. Press Ctrl+C to cancel.
 
 ## 2. Set up your build tools
 
@@ -76,7 +76,16 @@ Connect and unlock your iPhone, accept **Trust This Computer**, and get its UDID
 idevice_id -l
 ```
 
-In your Apple Developer account, register your app's **bundle ID** and the iPhone's **UDID**, then generate an **Ad Hoc provisioning profile** using your distribution certificate and that device.
+Choose **Set up signing** in the menu, or run:
+
+```sh
+ios-anywhere --config "$HOME/.config/ios-anywhere/expo.json" \
+  signing-setup --output "$HOME/private-signing/my-app"
+```
+
+Use your Godot config instead for a Godot toolchain. Sign in to Apple, select your team, enter your app's **bundle ID**, select an existing distribution certificate, and provide its **`.p12` with private key and password**. Choose a registered iPhone or enter a new name and UDID. Review and confirm the Apple resources to create.
+
+The assistant generates an **Ad Hoc profile** and `credentials.json` in a new private folder, and saves the iPhone locally for later installation. It never creates or revokes certificates. You need Apple Developer membership and appropriate team permissions. The helper uses the unofficial `@expo/apple-utils` library and installs its npm dependencies on first use after confirmation. For apps with extensions, configure each target separately; this assistant prepares one app and one device.
 
 Keep these three files together in a private folder outside the repository:
 
@@ -101,7 +110,7 @@ Use this structure for `credentials.json`, replacing the password locally:
 }
 ```
 
-**Need to create the profile?** Follow the [Apple portal steps or provisioning script](docs/signing.md#godot-create-a-profile-for-your-own-bundle-id). This step is required; setup does not create Apple credentials.
+**Prefer manual setup?** Follow the [Apple portal steps or provisioning script](docs/signing.md#godot-create-a-profile-for-your-own-bundle-id). Build-tool `setup` and Apple `signing-setup` are separate steps.
 
 **Already have EAS credentials?** Run `npx eas-cli credentials --platform ios` inside your EAS-configured **Expo project**, then download the credentials. It does not work inside a Godot project or this CLI repository. [Full signing guide →](docs/signing.md)
 
