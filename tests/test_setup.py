@@ -85,6 +85,8 @@ class SetupTests(unittest.TestCase):
             target.unlink()
 
             def fake_download(command):
+                self.assertIn("--retry-all-errors", command)
+                self.assertEqual(command[command.index("--continue-at") + 1], "-")
                 Path(command[command.index("--output") + 1]).write_bytes(b"bad network payload")
 
             with patch.object(setup, "run", side_effect=fake_download):
