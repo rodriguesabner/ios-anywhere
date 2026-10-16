@@ -394,6 +394,13 @@ def patch_splash(project):
 
 def patch_native_sources(project):
     patch_splash(project)
+    fmt = project / "ios/Pods/fmt/include/fmt/base.h"
+    if fmt.is_file():
+        text = fmt.read_text()
+        marker = "#if !defined(__cpp_lib_is_constant_evaluated)"
+        # fmt 11.0 ignores an explicit FMT_USE_CONSTEVAL override; newer releases already honor it.
+        if marker in text:
+            fmt.write_text(text.replace(marker, "#if defined(FMT_USE_CONSTEVAL)\n// Use the compiler-provided setting.\n#elif !defined(__cpp_lib_is_constant_evaluated)", 1))
     source = project / "node_modules/react-native-screens/ios/RNSScreenStackHeaderConfig.mm"
 
     if source.exists():
@@ -411,6 +418,31 @@ def patch_native_sources(project):
 
         if text != source.read_text():
             source.write_text(text)
+
+
+def prepare_glog(config, project, build, job):
+    pods = project / "ios/Pods"
+    header = pods / "glog/src/config.h"
+    if header.is_file():
+        text = header.read_text()
+        if any(f"#define {name} 1" not in text for name in ("HAVE_PTHREAD", "HAVE_PREAD")):
+            # Older cached probes failed at dsymutil, falsely disabling available iOS APIs.
+            marker = "/* Add in so we have Apple Target Conditionals */"
+            suffix = text[text.index(marker):] if marker in text else ""
+            env = dict(tool_env(config, project, build), CC="clang", CXX="clang++", CFLAGS="-O2 -g0", CXXFLAGS="-O2 -g0")
+            run(["./configure", "--host=arm-apple-darwin"], pods / "glog", job / "glog-configure.log", env)
+            configured = header.read_text()
+            if any(f"#define {name} 1" not in configured for name in ("HAVE_PTHREAD", "HAVE_PREAD")):
+                raise ValueError("glog could not detect iOS pthread/pread support; see glog-configure.log and glog/config.log.")
+            header.write_text(configured + "\n" + suffix)
+    # glog includes log_severity.h inside namespace google; implicit submodule imports are invalid there.
+    for modulemap in (pods / "Target Support Files/glog").glob("*.modulemap"):
+        text = modulemap.read_text()
+        patched = text.replace("umbrella header", "textual header")
+        if "textual header" in patched:
+            patched = re.sub(r"module\s+\*\s*\{\s*export\s+\*\s*\}", "", patched)
+        if patched != text:
+            modulemap.write_text(patched)
 
 
 def patch_scene(project, apps):
@@ -473,6 +505,7 @@ def native(config, job):
     pods = project / "ios/Pods"
     env = tool_env(config, project, build)
     patch_native_sources(project)
+    prepare_glog(config, project, build, job)
     libraries, apps = graphs(job)
 
     if len(apps) != 1:

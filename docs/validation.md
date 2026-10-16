@@ -72,3 +72,10 @@ The Ubuntu 24.04 recipe was implemented with staged publishing and pinned Swift,
 Using the existing Swift 6.4 compiler and SDKs, the new recipe successfully regenerated Darwin interfaces and the Swift 6.2 Cxx runtime objects, rebuilt the Expo macro plugin, and resolved its libraries after relocating its staging directory. Its smoke check ran CocoaPods, compiled a UIKit Swift probe, linked an arm64 Mach-O executable, and loaded zsign-wasm. Temporary compilation products were removed after these checks.
 
 The Swift archive checksum was calculated by streaming the official download without saving a second toolchain. Automated tests cover setup routing, required free space, safe extraction, SDK patch guards, isolated overlays, local Node selection, and withholding the final config/toolchain after a failed smoke check. These results do not establish a complete Expo app build with freshly installed apt/RubyGems/npm dependencies or runtime compatibility on an iPhone.
+
+
+## Expo 53 native dependency regression checks
+
+The Linux backend repairs failed glog pthread/pread configure probes (missing `dsymutil`), treats glog's umbrella as textual headers without inferred submodules, and expands recursive CocoaPods header search paths. For fmt 11.0, it enables an explicit `FMT_USE_CONSTEVAL=0` override to avoid a reproduced upstream-Clang/Apple-SDK constant-evaluation failure; formatting remains available, but compile-time format validation is reduced.
+
+Checked locally with the installed iOS toolchain: seven glog 0.3.5 source files compile; the namespace/module failure reproduces before and passes after the module-map change; fmt 11.0.2 `format.cc` fails before and compiles after the override; Skia 2.0.0 `base64.cpp` compiles with expanded recursive include paths. Cached glog configuration recovery was also exercised. These component checks do not establish a complete Expo app build, successful linking, or device execution.

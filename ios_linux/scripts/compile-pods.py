@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import glob
 import json, shlex, subprocess, concurrent.futures, hashlib, sys
 
 toolroot = Path(os.environ["IOS_LINUX_TOOLCHAIN"])
@@ -69,6 +70,8 @@ def command(t, source):
         cmd += [
             "-std=" + str(s.get("CLANG_CXX_LANGUAGE_STANDARD") or "c++20"),
             "-stdlib=libc++",
+            # shortcut: upstream Clang rejects fmt consteval with this SDK; retain runtime formatting.
+            "-DFMT_USE_CONSTEVAL=0",
         ]
 
     if objc and s.get("CLANG_ENABLE_OBJC_ARC") == "YES":
@@ -79,7 +82,9 @@ def command(t, source):
 
     for key, flag in [("HEADER_SEARCH_PATHS", "-I"), ("FRAMEWORK_SEARCH_PATHS", "-F")]:
         for p in args(s.get(key)):
-            cmd += [flag, p]
+            paths = sorted(x for x in glob.glob(p, recursive=True) if Path(x).is_dir()) if "**" in p else [p]
+            for expanded in dict.fromkeys(paths):
+                cmd += [flag, expanded]
 
     cmd += [
         "-I",
