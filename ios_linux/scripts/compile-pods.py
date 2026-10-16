@@ -82,7 +82,9 @@ def command(t, source):
 
     for key, flag in [("HEADER_SEARCH_PATHS", "-I"), ("FRAMEWORK_SEARCH_PATHS", "-F")]:
         for p in args(s.get(key)):
-            paths = sorted(x for x in glob.glob(p, recursive=True) if Path(x).is_dir()) if "**" in p else [p]
+            # Match Clang's working directory even when this script runs from the project.
+            pattern = str(pods / p) if not Path(p).is_absolute() else p
+            paths = sorted(x for x in glob.glob(pattern, recursive=True) if Path(x).is_dir()) if "**" in p else [p]
             for expanded in dict.fromkeys(paths):
                 cmd += [flag, expanded]
 

@@ -2,6 +2,8 @@ import json
 import os
 from pathlib import Path
 import runpy
+import shutil
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -30,7 +32,42 @@ class NativeCompatTests(unittest.TestCase):
             ccmd, _ = compiler['command'](target, {'path': str(root / 'source.c')})
             self.assertNotIn('-DFMT_USE_CONSTEVAL=0', ccmd)
 
-    def test_glog_repairs_cached_probes_preserving_apple_tail_and_textual_map(self):
+    def test_relative_recursive_paths_are_resolved_from_pods(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            headers = root / 'ios/Pods/my headers/api'
+            headers.mkdir(parents=True)
+            (root / 'pods-graph.json').write_text('[]')
+            env = {'IOS_LINUX_TOOLCHAIN': str(root), 'IOS_LINUX_BUILD': str(root), 'IOS_LINUX_PROJECT': str(root)}
+            with patch.dict(os.environ, env):
+                compiler = runpy.run_path(str(SCRIPTS / 'compile-pods.py'))
+            target = {'name': 'Pod', 'settings': {'HEADER_SEARCH_PATHS': '"my headers/**"', 'FRAMEWORK_SEARCH_PATHS': '"my headers/**"'}}
+            cmd, _ = compiler['command'](target, {'path': str(root / 'source.c')})
+            self.assertIn(('-I', str(headers)), list(zip(cmd, cmd[1:])))
+            self.assertIn(('-F', str(headers)), list(zip(cmd, cmd[1:])))
+
+    @unittest.skipUnless(shutil.which('clang'), 'Clang required for module import regression')
+    def test_glog_module_import_exports_declarations_and_namespace_include(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            support = root / 'ios/Pods/Target Support Files/glog'
+            support.mkdir(parents=True)
+            modulemap = support / 'module.modulemap'
+            (support / 'log_severity.h').write_text('#pragma once\nenum Severity { INFO };\n')
+            (support / 'logging.h').write_text('#pragma once\nnamespace google {\n#include "log_severity.h"\nvoid InitGoogleLogging(const char*);\n}\n')
+            (support / 'glog-umbrella.h').write_text('#include "logging.h"\n#include "log_severity.h"\n')
+            source = root / 'consumer.mm'
+            source.write_text('@import glog;\nvoid use() { google::InitGoogleLogging("test"); google::Severity s = google::INFO; }\n')
+            for kind in ('umbrella', 'textual'):
+                with self.subTest(kind=kind):
+                    modulemap.write_text('module glog { ' + kind + ' header "glog-umbrella.h"\n export *\n module * { export * }\n}\n')
+                    expo.prepare_glog(Config(root, root), root, root, root)
+                    expo.prepare_glog(Config(root, root), root, root, root)
+                    result = subprocess.run(['clang', '-fsyntax-only', '-x', 'objective-c++', '-fmodules',
+                        '-fmodules-cache-path=' + str(root / kind), '-I', str(support), str(source)], capture_output=True, text=True)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_glog_repairs_cached_probes_preserving_apple_tail_and_module_map(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             header = root / 'ios/Pods/glog/src/config.h'
@@ -53,7 +90,8 @@ class NativeCompatTests(unittest.TestCase):
             self.assertTrue(header.read_text().endswith(suffix))
             self.assertIn('#define HAVE_PTHREAD 1', header.read_text())
             self.assertIn('#define HAVE_PREAD 1', header.read_text())
-            self.assertIn('textual header', modulemap.read_text())
+            self.assertIn('header "glog-umbrella.h"', modulemap.read_text())
+            self.assertNotIn('textual header', modulemap.read_text())
             self.assertNotIn('umbrella header', modulemap.read_text())
             self.assertNotIn('module *', modulemap.read_text())
 
