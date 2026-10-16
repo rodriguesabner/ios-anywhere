@@ -29,4 +29,4 @@ jobs:
       - name: Run SDK-free unit tests
         run: python -m unittest discover -s tests -v
       - name: Check Python compilation
-        run: python -m compileall -q ios_linux tests
+        run: python -m compileall -q ios_linux tests scripts

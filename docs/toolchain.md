@@ -81,3 +81,7 @@ Obtain the Linux editor and official iOS template of the same version. Put the e
 The toolchain directory can be moved if configuration and internal links are updated. Clone and application paths are not used as fallbacks. `doctor` detects missing required files but cannot replace a real build to evaluate version compatibility.
 
 A project's cache can be deleted while all builds are stopped; the next build regenerates dependencies, graphs, and modules. The toolchain is durable infrastructure, not a project cache. Never delete it to clean build outputs.
+
+## GitHub Actions
+
+After preparing and privately validating this toolchain, follow [the CI guide](ci.md) for manual IPA builds on a dedicated runner. The workflow does not install missing Apple SDKs, macros, or overlays.

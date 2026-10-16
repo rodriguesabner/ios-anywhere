@@ -135,3 +135,7 @@ Without `--config`, the CLI first looks for `ios-anywhere/config.json` under `XD
 The quick-start copy command leaves both existing configurations untouched and does not create a new default that would hide a legacy configuration. No automatic migration occurs. If you manually copy a legacy configuration, check any relative paths because they are resolved relative to the selected JSON file.
 
 For new installations, the example uses `~/.local/share/ios-anywhere/toolchain` and `~/.cache/ios-anywhere`. These are configured values, not discovery paths: existing JSON files keep their original toolchain and cache locations. Do not move or redownload a working toolchain merely to rename it. The `ios-linux` command alias, `ios_linux` Python module, and `IOS_LINUX_*` environment variables remain supported.
+
+## GitHub Actions
+
+After preparing and privately validating this toolchain, follow [the CI guide](ci.md) for manual IPA builds on a dedicated runner. The workflow does not install missing Apple SDKs, macros, or overlays.
