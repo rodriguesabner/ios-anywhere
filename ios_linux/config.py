@@ -15,7 +15,7 @@ def default_config():
     preferred = root / "ios-anywhere/config.json"
     legacy = root / "ios-linux/config.json"
     # Never migrate or overwrite a user's files, or hide an invalid new config.
-    if preferred.exists() or not legacy.is_file():
+    if preferred.exists() or preferred.is_symlink() or not legacy.is_file():
         return preferred
     return legacy
 
