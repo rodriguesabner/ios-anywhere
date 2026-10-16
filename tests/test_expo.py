@@ -194,3 +194,30 @@ class ExpoTests(unittest.TestCase):
             app = expo_backend.stage(job)
             info = plistlib.loads((app / "Info.plist").read_bytes())
             self.assertNotIn("CFBundleIconName", info["CFBundleIcons"]["CFBundlePrimaryIcon"])
+
+    def test_glog_fallback_uses_ios_compiler_and_is_idempotent(self):
+        import os
+        import subprocess
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp)
+            script = project / 'node_modules/react-native/scripts/ios-configure-glog.sh'
+            script.parent.mkdir(parents=True)
+            script.write_text('export CC="$CC:-$(which gcc)"\nexport CXX="$CXX:-$(which g++ || true)"\nexport CXX="$CXX:-$CC"\nprintf "%s\\n%s\\n" "$CC" "$CXX"\n')
+            before = subprocess.check_output(['bash', str(script)], env=dict(os.environ, CC='', CXX=''), text=True)
+            self.assertIn(':-', before)
+            expo_backend.patch_glog_configure(project)
+            patched = script.read_text()
+            expo_backend.patch_glog_configure(project)
+            self.assertEqual(script.read_text(), patched)
+            after = subprocess.check_output(['bash', str(script)], env=dict(os.environ, CC='', CXX=''), text=True)
+            self.assertEqual(after.splitlines(), ['clang', 'clang++'])
+
+    def test_glog_patch_preserves_correct_upstream_fallback(self):
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp)
+            script = project / 'node_modules/react-native/scripts/ios-configure-glog.sh'
+            script.parent.mkdir(parents=True)
+            original = 'export CC="${CC:-clang}"\nexport CXX="${CXX:-clang++}"\n'
+            script.write_text(original)
+            expo_backend.patch_glog_configure(project)
+            self.assertEqual(script.read_text(), original)
