@@ -85,7 +85,7 @@ def tool_env(config, project, build):
                 str(SCRIPTS / "bin"),
                 str(tools / "gems/bin"),
                 str(tools / "swift/usr/bin"),
-                os.environ["PATH"],
+                config.env()["PATH"],
             ]
         ),
     )

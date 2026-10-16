@@ -32,8 +32,11 @@ class SetupTests(unittest.TestCase):
             load.assert_not_called()
 
     def test_expo_does_not_silently_install_godot(self):
-        with self.assertRaisesRegex(ValueError, "Expo setup is not automated"):
-            setup.setup(self.args("--engine", "expo"))
+        from ios_linux import setup_expo
+        with patch.object(setup_expo, "check_host", side_effect=ValueError("Unsupported Expo host")), patch.object(setup, "install_tools") as godot:
+            with self.assertRaisesRegex(ValueError, "Unsupported Expo host"):
+                setup.setup(self.args("--engine", "expo"))
+            godot.assert_not_called()
 
     def test_preserves_existing_config_and_dangling_toolchain(self):
         self.config.write_text("keep")

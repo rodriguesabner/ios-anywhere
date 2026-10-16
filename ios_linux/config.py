@@ -54,6 +54,7 @@ class Config:
 
         return dict(
             os.environ,
+            PATH=str(tools / "node/bin") + os.pathsep + os.environ.get("PATH", ""),
             IOS_LINUX_TOOLCHAIN=str(tools),
             IOS_LINUX_SIGNING_MODULE=str(tools / "signing/node_modules/zsign-wasm"),
             PYTHONOPTIMIZE="0",
@@ -95,7 +96,7 @@ class Config:
         ]
 
         for command in ["node", "openssl"] + (["npm", self.llvm_ar] if engine == "expo" else []):
-            if not shutil.which(command):
+            if not shutil.which(command, path=self.env()["PATH"]):
                 errors.append(f"Command not found: {command}")
 
         if errors:

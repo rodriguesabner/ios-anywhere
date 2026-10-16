@@ -17,7 +17,7 @@
 
 Build, sign, and install iOS apps locally on Linux. Supports **Godot** and **Expo**, with valid Apple signing credentials. No Mac or EAS Build is needed to run the local build workflow.
 
-**Experimental:** start with Godot 4.5.1 / GDScript for the guided setup. Expo requires a manually prepared toolchain. Linux x86_64 is the tested host platform; not every project is supported.
+**Experimental:** start with Godot 4.5.1 / GDScript for the guided setup. Expo has an experimental setup for Ubuntu 24.04. Linux x86_64 is the tested host platform; not every project is supported.
 
 <a id="installation"></a>
 
@@ -49,7 +49,14 @@ ios-anywhere --engine godot doctor
 
 Follow the prompts to install the compiler, linker, Godot libraries, signer, and iPhone USB utilities. Choose your local iPhoneOS 18.5 SDK or the unofficial SDK mirror. The mirror is not Apple-authenticated; Apple SDK terms still apply. [Setup details and troubleshooting →](docs/setup.md)
 
-**Expo:** follow the [manual toolchain guide](docs/installation.md#2-prepare-the-external-toolchain), then run `ios-anywhere --engine expo doctor`. The guided setup above only prepares Godot.
+**Expo (Ubuntu 24.04 x86_64):** have at least **20 GiB free**, then run:
+
+```sh
+ios-anywhere setup --engine expo
+ios-anywhere --engine expo doctor
+```
+
+This installs Swift, Node, CocoaPods, macros, SDKs, and compatibility objects. It is **experimental**: component checks have been run, but the complete new installer has not yet been validated on a clean PC. If Godot is already installed, use [separate Expo config and toolchain paths](docs/setup.md#expo-setup) to preserve it. Other hosts can use the [manual guide](docs/installation.md#2-prepare-the-external-toolchain).
 
 <a id="signing-setup-and-device-preparation"></a>
 
@@ -162,7 +169,7 @@ The Ad Hoc IPA from the steps above is for device testing. Store submission need
 | Engine / workflow | Status |
 | --- | --- |
 | Godot 4.5.1 / GDScript | Guided setup; Truck Town built on another PC and ran on an iPhone. |
-| Expo SDK 54 examples | Manual toolchain; examples built and tested on an iPhone. Native dependencies may need adaptation. |
+| Expo SDK 54 examples | Experimental Ubuntu 24.04 setup; examples built and tested on an iPhone. Native dependencies may need adaptation. |
 | Widgets and extensions | Not supported by the generic CLI workflow. |
 | App Store | Upload tested; Apple processing, review, and publication remain unverified. Precompiled asset catalogs are required. |
 

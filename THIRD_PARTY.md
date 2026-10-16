@@ -15,3 +15,5 @@ The experimental Godot setup downloads upstream Godot 4.5.1 and Darwin tools v1.
 - [LLVM compiler-rt license](licenses/LLVM-compiler-rt.txt), from [LLVM compiler-rt](https://github.com/llvm/llvm-project/blob/main/compiler-rt/LICENSE.TXT), includes Apache 2.0 with LLVM exceptions and historical licensing information. The SPDX notice in `os_version_check.c` is retained.
 
 The project's MIT license does not replace either third-party license.
+
+The experimental Expo setup downloads Swift 6.4.0 (Swift.org), Node 22.20.0 (Node.js), OpenAppleMacros v1.3.0, and SwiftCompilerPlugin source (swift-syntax). It installs CocoaPods 1.17.0 and Expo macros 0.6.1, and rebuilds the Cxx overlay from the pinned Swift 6.2 sources. Source license headers remain in downloaded files; no external binaries are committed here. See [Expo setup](docs/setup.md#expo-setup) for revisions, dependency locking limits, and host requirements.

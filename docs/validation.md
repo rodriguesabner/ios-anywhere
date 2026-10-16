@@ -64,3 +64,11 @@ The 3 min 41 sec recording is continuous, with no pauses or cuts. Credential acq
 The user ran guided setup on another PC and built the upstream [Truck Town demo](https://github.com/godotengine/godot-demo-projects/tree/master/3d/truck_town). The CLI reported a signed and verified IPA; installation reached `InstallComplete (100%)`, and the user supplied a screenshot of the running game. The exact demo commit and host distribution were not recorded.
 
 The first install attempt exposed missing USB dependencies. Installing `ideviceinstaller`, `libimobiledevice-utils`, and `usbmuxd` resolved it. Setup now includes those packages, with a regression test; the updated setup itself has not been rerun end to end on that host. Signing used an existing distribution certificate and an Ad Hoc profile containing the device, with the exact bundle ID authorized by that profile.
+
+## Expo setup component checks — 2026-10-16
+
+The Ubuntu 24.04 recipe was implemented with staged publishing and pinned Swift, Node, linker, Apple macro, SwiftCompilerPlugin, and SDK sources. The complete fresh-machine setup has **not** been run.
+
+Using the existing Swift 6.4 compiler and SDKs, the new recipe successfully regenerated Darwin interfaces and the Swift 6.2 Cxx runtime objects, rebuilt the Expo macro plugin, and resolved its libraries after relocating its staging directory. Its smoke check ran CocoaPods, compiled a UIKit Swift probe, linked an arm64 Mach-O executable, and loaded zsign-wasm. Temporary compilation products were removed after these checks.
+
+The Swift archive checksum was calculated by streaming the official download without saving a second toolchain. Automated tests cover setup routing, required free space, safe extraction, SDK patch guards, isolated overlays, local Node selection, and withholding the final config/toolchain after a failed smoke check. These results do not establish a complete Expo app build with freshly installed apt/RubyGems/npm dependencies or runtime compatibility on an iPhone.
