@@ -38,6 +38,7 @@ def parser():
     setup.add_argument("--yes", action="store_true", help="Accept tool downloads and missing apt packages; requires --sdk-source")
     signing_setup = sub.add_parser("signing-setup", help="Create an Ad Hoc profile using an existing Apple distribution certificate")
     signing_setup.add_argument("--output", type=Path, required=True, help="New private signing folder")
+    sub.add_parser("clean", help="Preview and confirm cleanup of regenerable build caches")
     sub.add_parser("doctor", help="Check tools without requiring a project")
     sub.add_parser("bundle", help="Generate JS/Hermes or PCK resources without signing")
     build = sub.add_parser("build", help="Prepare, compile, sign, and verify")
@@ -89,6 +90,11 @@ def execute(argv=None):
         return
 
     config = Config.load(args.config)
+
+    if args.command == "clean":
+        from .cleanup import clean
+        clean(config)
+        return
 
     if args.command == "signing-setup":
         from .provisioning import setup

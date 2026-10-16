@@ -50,6 +50,7 @@ ios-anywhere
   Build an IPA
   Install on iPhone
   Manage signing & devices
+  Clean build caches
   Advanced
   Exit
 ```
@@ -64,6 +65,7 @@ Use **↑ / ↓** to select, **Enter** to continue, and **Ctrl+C** to cancel. Fi
 | **Build an IPA** | Choose engine, config, project, signing JSON and output. |
 | **Install on iPhone** | Choose an IPA and a saved iPhone, or save another device. |
 | **Manage signing & devices** | Create Apple signing credentials, or choose/save an iPhone. |
+| **Clean build caches** | Preview generated build files and their size, then confirm removal. |
 | **Advanced** | Set up build tools, check tools (doctor), verify an IPA, or export resources only. |
 
 **Which configuration?** A config locates your installed tools; it is not your Apple credentials. The selector shows its name, toolchain folder and config path. Use `expo.json` for Expo and `godot.json` for Godot; older `config.json` installations keep their original name. The guided flow checks the selected tools before building.
@@ -305,3 +307,13 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and checks, [Validation](docs/v
 Project-authored code is licensed under [MIT](LICENSE). Third-party material retains its own licenses and copyright notices; see [Third-party components](THIRD_PARTY.md).
 
 **You must legally obtain and be authorized to use external tools and SDKs**, including Apple SDKs and toolchain dependencies, under their applicable terms. ios-anywhere grants no tool license, key, or activation entitlement. Unauthorized copies, stolen keys, unauthorized credential sharing, and bypassing license restrictions are not authorized by the project. This guidance does not amend MIT or third-party licenses.
+
+### Free build cache space
+
+Choose **Clean build caches**, then select the configuration whose cache you want to clean. The CLI lists the paths and approximate size before asking for confirmation (default: No).
+
+```sh
+ios-anywhere --config "$HOME/.config/ios-anywhere/expo.json" clean
+```
+
+This removes recognized per-project build intermediates, cached Expo dependencies/Pods, and Godot import/staging files. It preserves source snapshots, logs, exported IPAs, credentials and toolchains. It refuses cleanup while a build holds the cache lock and skips symlinked cache paths. The next build may take longer and download dependencies again. Setup downloads and system-wide CocoaPods caches are not included.
