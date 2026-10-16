@@ -32,18 +32,30 @@ class ExpoTests(unittest.TestCase):
             self.assertEqual(expo_backend.constants_script(project), hoisted)
 
     def test_splash_patch_is_idempotent_and_keeps_existing_behavior(self):
+        for name in ('splashScreenFilename', '"SplashScreen"'):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temp:
+                project = Path(temp)
+                source = project / "node_modules/expo-splash-screen/ios/SplashScreenManager.swift"
+                source.parent.mkdir(parents=True)
+                original = f"    if let vc = UIStoryboard(name: {name}, bundle: nil).instantiateInitialViewController() {{\n      loadingView = vc.view\n    }}"
+                source.write_text(original)
+                expo_backend.patch_splash(project)
+                first = source.read_text()
+                self.assertIn(original, first)
+                self.assertIn(f'forResource: {name}, ofType: "storyboardc"', first)
+                expo_backend.patch_splash(project)
+                self.assertEqual(source.read_text(), first)
+
+    def test_splash_patch_rejects_unknown_implementation_without_changes(self):
         with tempfile.TemporaryDirectory() as temp:
             project = Path(temp)
             source = project / "node_modules/expo-splash-screen/ios/SplashScreenManager.swift"
             source.parent.mkdir(parents=True)
-            original = "    if let vc = UIStoryboard(name: splashScreenFilename, bundle: nil).instantiateInitialViewController() {\n      loadingView = vc.view\n    }"
+            original = 'loadCustomSplash()'
             source.write_text(original)
-            expo_backend.patch_splash(project)
-            first = source.read_text()
-            self.assertIn(original, first)
-            self.assertIn('ofType: "storyboardc"', first)
-            expo_backend.patch_splash(project)
-            self.assertEqual(source.read_text(), first)
+            with self.assertRaisesRegex(ValueError, 'Unrecognized splash'):
+                expo_backend.patch_splash(project)
+            self.assertEqual(source.read_text(), original)
 
     def test_scene_patch_is_idempotent_and_preserves_app_setup(self):
         with tempfile.TemporaryDirectory() as temp:
