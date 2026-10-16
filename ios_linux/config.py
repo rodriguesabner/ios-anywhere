@@ -68,7 +68,7 @@ class Config:
                 "ruby/usr/bin/ruby3.2",
                 "gems/bin/pod",
                 "sdks/iPhoneOS26.4.sdk/SDKSettings.json",
-                "sdks/iPhoneOS27.0.sdk/SDKSettings.json",
+                "sdks/iPhoneOS26.5.sdk/SDKSettings.json",
                 "darwin-resource/iphoneos/Cxx.swiftmodule/arm64-apple-ios.swiftinterface",
                 "darwin-resource/shims",
                 "apple-macros/OpenAppleMacrosServer",

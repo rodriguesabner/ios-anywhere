@@ -607,10 +607,9 @@ def compile_and_link(config, job, selected, apps):
     import shlex
 
     frameworks = list(pods.rglob("*.xcframework/ios-arm64/*.framework"))
-    sdk = config.toolchain / "sdks/iPhoneOS27.0.sdk"
+    sdk = config.toolchain / "sdks/iPhoneOS26.5.sdk"
     needs_cxx = any(t["settings"].get("SWIFT_OBJC_INTEROP_MODE") == "objcxx" for t in selected)
-    # shortcut: the prepared Cxx overlay targets iOS 27; rebuild and validate it before supporting older iOS.
-    minimum = "27.0" if needs_cxx else "16.4"
+    minimum = "16.4"
 
     for app in apps:
         name = app["name"]
@@ -641,7 +640,7 @@ def compile_and_link(config, job, selected, apps):
             "-platform_version",
             "ios",
             minimum,
-            "27.0",
+            "26.5",
             "--error-limit=0",
             "-syslibroot",
             sdk,
@@ -722,10 +721,30 @@ def stage(job):
         CFBundleExecutable=name,
         CFBundlePackageType="APPL",
         CFBundleSupportedPlatforms=["iPhoneOS"],
-        MinimumOSVersion="27.0"
-        if any(t["settings"].get("SWIFT_OBJC_INTEROP_MODE") == "objcxx" for t in libraries)
-        else "16.4",
+        DTPlatformName="iphoneos",
+        UIDeviceFamily=[
+            int(family.strip())
+            for family in (settings.get("TARGETED_DEVICE_FAMILY") or "1").split(",")
+        ],
+        MinimumOSVersion="16.4",
     )
+
+    link_command = build / "products" / name / "link-command.json"
+    if link_command.exists():
+        command = json.loads(link_command.read_text())
+        sdk = Path(command[command.index("-syslibroot") + 1])
+        sdk_settings = json.loads((sdk / "SDKSettings.json").read_text())
+        sdk_system = plistlib.loads(
+            (sdk / "System/Library/CoreServices/SystemVersion.plist").read_bytes()
+        )
+        # Record the SDK actually linked, without inventing an Xcode build identity.
+        info.update(
+            MinimumOSVersion=command[command.index("-platform_version") + 2],
+            DTSDKName=sdk_settings["CanonicalName"],
+            DTPlatformVersion=sdk_settings["Version"],
+            DTSDKBuild=sdk_system["ProductBuildVersion"],
+            DTPlatformBuild=sdk_system["ProductBuildVersion"],
+        )
 
     info.pop("UILaunchStoryboardName", None)
     info["UILaunchScreen"] = {}
@@ -813,12 +832,13 @@ def stage(job):
             for filename, size in [
                 ("AppIcon60x60@2x.png", 120),
                 ("AppIcon60x60@3x.png", 180),
-                ("AppIcon76x76@2x.png", 152),
-                ("AppIcon83.5x83.5@2x.png", 167),
+                ("AppIcon76x76@2x~ipad.png", 152),
+                ("AppIcon83.5x83.5@2x~ipad.png", 167),
             ]:
-                icon.convert("RGB").resize((size, size), Image.Resampling.LANCZOS).save(
-                    dest / filename
-                )
+                if not (dest / filename).exists():
+                    icon.convert("RGB").resize((size, size), Image.Resampling.LANCZOS).save(
+                        dest / filename
+                    )
 
         info["CFBundleIcons"] = {"CFBundlePrimaryIcon": {"CFBundleIconFiles": ["AppIcon60x60"]}}
 
@@ -831,6 +851,12 @@ def stage(job):
                 ]
             }
         }
+
+    # shortcut: Assets.car must already be compiled; Linux asset compilation is not implemented.
+    if icons and (dest / "Assets.car").is_file():
+        icon_name = settings.get("ASSETCATALOG_COMPILER_APPICON_NAME") or "AppIcon"
+        for key in ("CFBundleIcons", "CFBundleIcons~ipad"):
+            info[key]["CFBundlePrimaryIcon"]["CFBundleIconName"] = icon_name
 
     for src in (project / "ios" / name).glob("Images.xcassets/SplashScreenLogo.imageset/*.png"):
         scale = "@3x" if "@3x" in src.stem else "@2x" if "@2x" in src.stem else ""

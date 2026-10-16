@@ -113,6 +113,7 @@ class ExpoTests(unittest.TestCase):
                                 "INFOPLIST_FILE": "Other/Info.plist",
                                 "PRODUCT_BUNDLE_IDENTIFIER": "com.test.other",
                                 "CURRENT_PROJECT_VERSION": "42",
+                                "TARGETED_DEVICE_FAMILY": "1,2",
                             },
                         }
                     ]
@@ -124,6 +125,8 @@ class ExpoTests(unittest.TestCase):
             info = plistlib.loads((app / "Info.plist").read_bytes())
             self.assertEqual(info["CFBundleIdentifier"], "com.test.other")
             self.assertEqual(info["CFBundleVersion"], "42")
+            self.assertEqual(info["DTPlatformName"], "iphoneos")
+            self.assertEqual(info["UIDeviceFamily"], [1, 2])
             self.assertFalse((app / "PlugIns").exists())
             self.assertEqual(info["MinimumOSVersion"], "16.4")
 
@@ -132,6 +135,27 @@ class ExpoTests(unittest.TestCase):
             ][0]
 
             self.assertEqual(scene["UISceneDelegateClassName"], "Other.SceneDelegate")
+
+            sdk = job / "test-sdk"
+            (sdk / "System/Library/CoreServices").mkdir(parents=True)
+            (sdk / "SDKSettings.json").write_text(
+                json.dumps({"CanonicalName": "iphoneos26.0", "Version": "26.0"})
+            )
+            (sdk / "System/Library/CoreServices/SystemVersion.plist").write_bytes(
+                plistlib.dumps({"ProductBuildVersion": "23A339"})
+            )
+            (job / "build/products/Other/link-command.json").write_text(
+                json.dumps(["ld", "-syslibroot", str(sdk), "-platform_version", "ios", "15.1", "26.0"])
+            )
+            app = expo_backend.stage(job)
+            metadata = plistlib.loads((app / "Info.plist").read_bytes())
+            self.assertEqual(metadata["DTSDKName"], "iphoneos26.0")
+            self.assertEqual(metadata["MinimumOSVersion"], "15.1")
+            self.assertEqual(metadata["DTSDKBuild"], "23A339")
+            self.assertEqual(metadata["DTPlatformBuild"], "23A339")
+            self.assertEqual(metadata["DTPlatformVersion"], "26.0")
+            self.assertNotIn("DTXcodeBuild", metadata)
+            (job / "build/products/Other/link-command.json").unlink()
 
             (job / "build/pods-graph.json").write_text(
                 json.dumps(
@@ -148,5 +172,25 @@ class ExpoTests(unittest.TestCase):
 
             self.assertEqual(
                 plistlib.loads((app / "Info.plist").read_bytes())["MinimumOSVersion"],
-                "27.0",
+                "16.4",
             )
+
+            from PIL import Image
+
+            iconset = job / "project/ios/Other/Images.xcassets/AppIcon.appiconset"
+            iconset.mkdir(parents=True)
+            Image.new("RGB", (1024, 1024), "red").save(iconset / "icon.png")
+            resources = job / "build/app-resources"
+            Image.new("RGB", (120, 120), "blue").save(resources / "AppIcon60x60@2x.png")
+            original_icon = (resources / "AppIcon60x60@2x.png").read_bytes()
+            (resources / "Assets.car").write_bytes(b"precompiled-catalog")
+            app = expo_backend.stage(job)
+            info = plistlib.loads((app / "Info.plist").read_bytes())
+            for key in ("CFBundleIcons", "CFBundleIcons~ipad"):
+                self.assertEqual(info[key]["CFBundlePrimaryIcon"]["CFBundleIconName"], "AppIcon")
+            self.assertEqual((app / "AppIcon60x60@2x.png").read_bytes(), original_icon)
+            self.assertTrue((app / "AppIcon76x76@2x~ipad.png").is_file())
+            (resources / "Assets.car").unlink()
+            app = expo_backend.stage(job)
+            info = plistlib.loads((app / "Info.plist").read_bytes())
+            self.assertNotIn("CFBundleIconName", info["CFBundleIcons"]["CFBundlePrimaryIcon"])

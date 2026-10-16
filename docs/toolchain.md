@@ -10,7 +10,7 @@ O campo `toolchain` do config aponta para uma pasta com:
 toolchain/
   swift/usr/bin/{swiftc,clang,clang++}
   darwin-tools/bin/ld64.lld
-  sdks/{iPhoneOS18.5.sdk,iPhoneOS26.4.sdk,iPhoneOS27.0.sdk}/
+  sdks/{iPhoneOS18.5.sdk,iPhoneOS26.4.sdk,iPhoneOS26.5.sdk}/
   darwin-resource/
     clang -> ../swift/usr/lib/clang/21
     shims -> ../swift/usr/lib/swift/shims
@@ -35,7 +35,7 @@ Os campos `llvm_ar` e `installer` aceitam um executável no PATH ou caminho abso
 | Swift Linux | Swift 6.4 RELEASE | Swift, Clang e shims |
 | Linker Mach-O | [darwin-tools-linux-llvm v1.1.0](https://github.com/xtool-org/darwin-tools-linux-llvm/releases/tag/v1.1.0) | `ld64.lld` |
 | Macros Apple no Linux | [OpenAppleMacros v1.3.0](https://github.com/xtool-org/OpenAppleMacros/releases/tag/v1.3.0) | servidor de plugins Swift |
-| SDK iOS | 18.5, 26.4 e 27.0 | Godot, headers C e Swift/linkagem, respectivamente |
+| SDK iOS | 18.5, 26.4 e 26.5 | Godot; compilação Expo; linkagem Expo, respectivamente |
 | Ruby/CocoaPods | Ruby 3.2, CocoaPods 1.17.0 | resolução de pods e exportação do projeto |
 | Macros Expo | plugin Linux compilado para o Expo instalado | `host-macros/ExpoModulesMacros-tool` |
 | Assinador | npm `zsign-wasm@0.0.4` | assinatura local |
@@ -44,7 +44,7 @@ Os campos `llvm_ar` e `installer` aceitam um executável no PATH ou caminho abso
 
 Os arquivos Darwin `Cxx`/`CxxStdlib` precisam corresponder ao compilador. O toolchain Swift para Linux sozinho não inclui todos os overlays Apple necessários. O diretório de macros contém o servidor Linux e os pontos de entrada de plugins esperados pelos interfaces do SDK. A macro Expo deve ser compilada para o host, não copiada de um executável macOS do npm. Esses itens são requisitos reais, não são instalados por `doctor`.
 
-O conjunto de SDKs usado foi obtido do mirror `xybp888/iOS-SDKs`, revisão `ad607cb07fe4ad1c9b91cf970bd228c2a9253207`. No SDK 27 desse mirror, `System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore.tbd` foi desativado (renomeado para `.tbd.mirror-backup`) porque o stub privado incompleto sobrepunha o público. Isso é específico desse conjunto; não aplique a outro SDK sem avaliar. SDK 26.4 desse mirror é usado para headers, não para a linkagem final.
+O conjunto de SDKs usado foi obtido do mirror `xybp888/iOS-SDKs`, revisão `ad607cb07fe4ad1c9b91cf970bd228c2a9253207`. Nos SDKs 26.5 e 27 desse mirror, `System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore.tbd` foi desativado (renomeado para `.tbd.mirror-backup`) porque o stub privado incompleto sobrepunha o público. Isso é específico desse conjunto; não aplique a outro SDK sem avaliar. O backend Expo usa SDK 26.4 para compilação C/Swift e 26.5 para linkagem. Os stubs 26.4 desse mirror omitem símbolos Swift de frameworks públicos, incluindo StoreKit. O SDK 27 não é mais selecionado pelo pipeline.
 
 Para preparar apenas o assinador, em uma pasta externa:
 
@@ -70,7 +70,7 @@ python3 ios_linux/scripts/prepare-runtime.py \
   --cxx-sources /caminho/swift-6.2/stdlib/public/Cxx
 ```
 
-O overlay é isolado em `cxx-runtime/modules`; o overlay padrão do compilador é preservado. O alvo é iOS 27. A combinação evita referências a `Swift.Iterable` que o aparelho usado no teste não fornecia. Arquivos binários de módulos não são universais entre compiladores: recompile ao trocar Swift.
+O overlay é isolado em `cxx-runtime/modules`; o overlay padrão do compilador é preservado. O alvo do overlay é iOS 16.4. Reexecute o comando acima ao atualizar de uma instalação cujo overlay foi compilado para iOS 27. Isso não substitui testes de execução em aparelhos antigos. A combinação evita referências a `Swift.Iterable` que o aparelho usado no teste não fornecia. Arquivos binários de módulos não são universais entre compiladores: recompile ao trocar Swift.
 
 ## Godot
 

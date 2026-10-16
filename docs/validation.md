@@ -22,3 +22,11 @@ Essa confirmação valida o uso dos exemplos mínimos no aparelho testado. Não 
 ## Não verificado
 
 Bootstrap integral em máquina limpa; outros compiladores/SDKs; Linux arm64; versões antigas de iOS; compras, anúncios e distribuição na App Store. A verificação CMS local não consulta revogação ou confiança na Apple.
+
+## Metadados de distribuição e nome 0.2.1
+
+- O backend Expo registra a família de aparelhos e o SDK efetivamente usado na linkagem, sem inventar uma versão de Xcode.
+- Empacotamento preserva ícones e catálogo de assets pré-compilados. A geração de Assets.car no Linux ainda não foi implementada.
+- No teste CS Callouts, houve upload de um IPA com executável compilado no Linux e catálogo de assets reaproveitado de um build EAS do mesmo app. Upload concluído não confirma processamento nem aprovação pela Apple; essa confirmação final não foi verificada.
+- Após essas alterações, os 13 testes automatizados passaram novamente, incluindo verificações de metadados e preservação de ícones.
+- O nome público passou a ios-anywhere. O comando antigo, módulo Python e caminhos de configuração foram preservados.

@@ -58,7 +58,7 @@ if args.cxx_sources:
         )
     )
 
-    flags = [flag.replace("arm64-apple-ios16.4", "arm64-apple-ios27.0") for flag in flags]
+    flags[flags.index("-target") + 1] = "arm64-apple-ios16.4"
     sources = sorted(args.cxx_sources.resolve().glob("*.swift"))
 
     if not sources or any("protocol CxxIterable" in p.read_text() for p in sources):
@@ -70,7 +70,7 @@ if args.cxx_sources:
         "-emit-object",
         *flags,
         "-sdk",
-        str(tools / "sdks/iPhoneOS27.0.sdk"),
+        str(tools / "sdks/iPhoneOS26.4.sdk"),
         "-resource-dir",
         str(tools / "darwin-resource"),
         "-I",
@@ -90,7 +90,7 @@ if args.cxx_sources:
         "-cxx-interoperability-mode=default",
         "-Xcc",
         "-nostdinc++",
-        # shortcut: upstream availability aliases are absent; this overlay is restricted to iOS 27.
+        # shortcut: upstream stdlib availability aliases are absent; validate the runtime on target devices.
         "-disable-availability-checking",
         *map(str, sources),
     ]

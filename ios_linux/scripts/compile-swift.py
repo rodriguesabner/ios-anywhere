@@ -32,17 +32,13 @@ for name in sys.argv[1:]:
     out = products / name
     out.mkdir(exist_ok=True, parents=True)
 
-    # Keep Release assertion semantics while retaining unoptimized code for diagnosis.
+    # Match Release optimization and assertion semantics.
     cmd = [
         str(toolroot / "swift/usr/bin/swiftc"),
         "-target",
-        (
-            "arm64-apple-ios27.0"
-            if s.get("SWIFT_OBJC_INTEROP_MODE") == "objcxx"
-            else "arm64-apple-ios16.4"
-        ),
+        "arm64-apple-ios16.4",
         "-sdk",
-        str(toolroot / "sdks/iPhoneOS27.0.sdk"),
+        str(toolroot / "sdks/iPhoneOS26.4.sdk"),
         "-resource-dir",
         str(toolroot / "darwin-resource"),
         "-I",
@@ -53,7 +49,7 @@ for name in sys.argv[1:]:
         (s.get("SWIFT_VERSION") or "5").split(".")[0],
         "-parse-as-library",
         "-whole-module-optimization",
-        "-Onone",
+        "-O",
         "-assert-config",
         "Release",
         "-module-name",
