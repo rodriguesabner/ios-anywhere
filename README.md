@@ -47,7 +47,26 @@ The [website source](docs/index.html) includes an embedded player, commands, com
 
 ## Installation
 
-Requires Python 3.11+, Node/npm, OpenSSL, and Pillow. Install from this repository:
+### 1. Install the CLI and base tools
+
+The CLI requires **Python 3.11+**. Builds also use Node/npm and OpenSSL; `pip install .` installs Pillow automatically.
+
+For example, on Ubuntu 24.04 x86_64, install the base packages:
+
+```sh
+sudo apt-get update
+sudo apt-get install -y git python3 python3-venv python3-pip openssl curl unzip
+python3 --version
+```
+
+Install Node.js with npm using the [official Linux installation options](https://nodejs.org/en/download), choosing a version supported by your Expo project. Confirm both are on PATH:
+
+```sh
+node --version
+npm --version
+```
+
+Install this CLI from the repository:
 
 ```sh
 git clone https://github.com/rodriguesabner/ios-anywhere.git
@@ -58,14 +77,98 @@ python3 -m venv .venv
 ios-anywhere --version
 ```
 
-Prepare the [external toolchain](docs/toolchain.md), copy `config.example.json` to `~/.config/ios-linux/config.json`, and adjust the paths. **Installing the Python package does not install compilers, SDKs, or Apple credentials.**
+The commands below assume this repository is the current directory and the virtual environment is active. **This installs the CLI, its Python dependency, wrappers, and templates. It does not install an iOS toolchain or Apple credentials.**
+
+### 2. Prepare the external toolchain
+
+Use an existing compatible toolchain if you already have one. Otherwise, prepare the components below once, outside the repository and your app:
 
 ```sh
-ios-anywhere doctor
+export TOOLCHAIN="$HOME/.local/share/ios-linux/toolchain"
+mkdir -p "$TOOLCHAIN"
+```
+
+The paths are part of the current CLI contract; merely installing tools on PATH does not satisfy every check. Follow the complete [expected layout and tested versions](docs/toolchain.md#expected-layout).
+
+**Common compilation and signing tools**
+
+- Obtain a compatible Linux Swift/Clang toolchain from [Swift's official distribution](https://www.swift.org/install/linux/) and place its contents under `$TOOLCHAIN/swift`, with `usr/bin/clang` and `usr/bin/swiftc`. The recorded build environment used Swift 6.4; a generic Linux Swift installation alone does **not** provide all Apple cross-compilation resources.
+- Download `toolset-x86_64.tar.gz` from the upstream [darwin-tools-linux-llvm v1.1.0 release](https://github.com/xtool-org/darwin-tools-linux-llvm/releases/tag/v1.1.0). Extract and arrange it so the linker is `$TOOLCHAIN/darwin-tools/bin/ld64.lld`; inspect the archive layout before extracting into an existing toolchain.
+- Supply Apple SDKs that you are authorized to obtain and use, starting from [Apple's Xcode resources](https://developer.apple.com/xcode/resources/). The current backend expects `sdks/iPhoneOS18.5.sdk` for Godot and `sdks/iPhoneOS26.4.sdk` plus `sdks/iPhoneOS26.5.sdk` for Expo. The package does not download or license them. SDK versions and stubs are not interchangeable; see the [compatibility notes](docs/toolchain.md#components-in-the-validated-environment).
+- Install the external signer using npm:
+
+```sh
+npm install --prefix "$TOOLCHAIN/signing" --save-exact zsign-wasm@0.0.4
+```
+
+Keep your certificate, password, and provisioning profile outside the repository and toolchain; supply them later through [the credentials file](credentials.example.json). Installing the signer does not create Apple credentials.
+
+**Expo-specific preparation**
+
+1. Install LLVM's archive tool. For Ubuntu 24.04, `sudo apt-get install llvm-18` supplies `llvm-ar-18`; set `"llvm_ar": "llvm-ar-18"` in your config if there is no unversioned `llvm-ar`.
+2. Prepare Ruby 3.2 and its standard libraries using [Ruby's installation guidance](https://www.ruby-lang.org/en/documentation/installation/), arranged under `$TOOLCHAIN/ruby/usr` as described in the toolchain layout. The backend currently uses `ruby/usr/bin/ruby3.2` and explicit Ruby library paths; a different system Ruby is not an automatic substitute.
+3. With that matching Ruby and RubyGems environment active, install CocoaPods into the external gems directory:
+
+```sh
+GEM_HOME="$TOOLCHAIN/gems" GEM_PATH="$TOOLCHAIN/gems" \
+  gem install cocoapods -v 1.17.0 --no-document --env-shebang
+```
+
+This uses [CocoaPods' RubyGems installation method](https://guides.cocoapods.org/using/getting-started.html). Confirm `$TOOLCHAIN/gems/bin/pod` exists and runs with your prepared Ruby. The CLI handles `npm ci`, Expo prebuild, and `pod install` for each project during a build.
+
+4. Install the Linux x86_64 server from [OpenAppleMacros v1.3.0](https://github.com/xtool-org/OpenAppleMacros/releases/tag/v1.3.0) as `apple-macros/OpenAppleMacrosServer`, and prepare the SDK-required plugin entry points. Prepare `host-macros/ExpoModulesMacros-tool` for the Linux host and the installed Expo version; do not copy a macOS executable from npm.
+5. Supply compiler-compatible Darwin `Cxx`/`CxxStdlib` interfaces and shims in `darwin-resource`. After those resources, Clang, Swift, and the SDKs are present, generate the runtime objects and Swift/C++ overlay from the repository:
+
+```sh
+python3 ios_linux/scripts/prepare-runtime.py \
+  --toolchain "$TOOLCHAIN" \
+  --cxx-sources /path/to/swift-6.2/stdlib/public/Cxx
+```
+
+Replace the source path with the `stdlib/public/Cxx` directory from the official [Swift 6.2 release sources](https://github.com/swiftlang/swift/tree/swift-6.2-RELEASE). Rebuild the overlay when changing Swift. See [runtime preparation](docs/toolchain.md#runtime-objects) for details.
+
+**These Expo macro, Ruby-layout, and Darwin-overlay preparation steps are not automated by this repository.** The toolchain guide records their required inputs and layout, but is not yet a fully tested fresh-machine bootstrap recipe. Do not treat the commands above as a complete one-command toolchain installer.
+
+**Godot-specific preparation**
+
+Download the standard Linux x86_64 editor and matching export templates from the official [Godot 4.5.1 archive](https://godotengine.org/download/archive/4.5.1-stable/). Extract the editor and iOS templates, then place:
+
+- The Linux editor executable at `$TOOLCHAIN/godot/godot`.
+- The release **arm64 device** engine library at `$TOOLCHAIN/godot/libgodot.a`.
+- Its matching MoltenVK library at `$TOOLCHAIN/godot/libMoltenVK.a`.
+
+Use the device slices, not simulator slices, and keep the editor/template versions equal. See [Godot toolchain setup](docs/toolchain.md#godot). Ruby/CocoaPods and Expo macros are not needed for the Godot backend.
+
+**Optional: install onto a physical iPhone**
+
+Install libimobiledevice's `ideviceinstaller` using your distribution's packages; on Ubuntu, `sudo apt-get install ideviceinstaller`. Set `installer` in the config if using a different executable path. This is needed for `ios-anywhere install`, not merely to produce an IPA. Device pairing and a matching provisioning profile are still required.
+
+### 3. Configure paths and check the selected backend
+
+Create a config without overwriting an existing one:
+
+```sh
+mkdir -p "$HOME/.config/ios-linux"
+if [ ! -e "$HOME/.config/ios-linux/config.json" ]; then
+  cp config.example.json "$HOME/.config/ios-linux/config.json"
+fi
+```
+
+Edit `~/.config/ios-linux/config.json` to point `toolchain` at your prepared directory, and adjust `llvm_ar`/`installer` if needed. `TOOLCHAIN` above is a shell variable for setup commands; the CLI reads its toolchain path from this JSON file.
+
+Run the check for the backend you prepared:
+
+```sh
+ios-anywhere --engine expo doctor
+# Or, for Godot:
 ios-anywhere --engine godot doctor
 ```
 
-Use `--config /path/to/config.json` to select another configuration. Activate the virtual environment or use `.venv/bin/ios-anywhere` directly.
+`doctor` checks required paths and commands; it does not install missing tools, download SDKs, or prove a successful build. Use `--config /path/to/config.json` to select another configuration. Activate the virtual environment or use `.venv/bin/ios-anywhere` directly.
+
+**Validation scope:** a fresh checkout and virtual environment on an existing Debian 13.6 x86_64 host passed CLI installation and all 13 unit tests on October 16, 2026; that host already had Python, Node/npm, and OpenSSL. This did not install the external toolchain or build an IPA. The Ubuntu package examples and full toolchain bootstrap above have not been validated end to end on a blank machine. See [device/build validation](docs/validation.md) for the separately tested prepared environment.
+
+If you already have an App Store IPA and only want to upload it, skip local compiler/toolchain setup and follow [Submit to Apple](#submit-to-apple).
 
 ## Expo
 
