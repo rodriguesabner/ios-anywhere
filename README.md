@@ -15,7 +15,7 @@
 [![Godot device: documented manual test](https://img.shields.io/badge/Godot_device-documented_manual_test-007ec6)](docs/validation.md#device-tests)
 [![Apple upload: documented manual test](https://img.shields.io/badge/Apple_upload-documented_manual_test-007ec6)](docs/validation.md#apple-upload-example-cs-callouts)
 
-[Website](https://rodriguesabner.github.io/ios-anywhere/) · [Quick start](#installation) · [Expo](#expo) · [Godot](#godot) · [Compatibility](#compatibility) · [Validation status](#validation-status) · [Signing setup](#signing-verification-and-installation) · [Submit to Apple](#submit-to-apple) · [Documentation](#documentation)
+[Website](https://rodriguesabner.github.io/ios-anywhere/) · [Quick start](#installation) · [Expo](#expo) · [Godot](#godot) · [Compatibility](#compatibility) · [Validation status](#validation-status) · [Signing setup](#signing-setup-and-device-preparation) · [Submit to Apple](#submit-to-apple) · [Documentation](#documentation)
 
 </div>
 
@@ -71,30 +71,7 @@ ios-anywhere --engine expo doctor
 
 `doctor` checks prerequisites; it does not install them. Full setup instructions and tested scope are in [Installation details](docs/installation.md).
 
-## Expo
-
-```sh
-ios-anywhere --engine expo \
-  --project /path/to/my-app \
-  --credentials /private/credentials.json \
-  build --output /path/to/MyApp-01.ipa
-```
-
-The project needs `package.json`, `package-lock.json`, and an Expo configuration with `ios.bundleIdentifier`. The CLI creates an isolated copy, runs `npm ci`, iOS prebuild and CocoaPods, exports the app's build graphs, compiles native modules, generates Hermes bytecode, and signs the IPA. The original source is not modified. Project scripts and npm packages execute during this process: use trusted sources.
-
-## Godot
-
-```sh
-ios-anywhere --engine godot \
-  --project /path/to/my-game \
-  --bundle-id com.example.mygame \
-  --credentials /private/credentials.json \
-  build --output /path/to/MyGame-01.ipa
-```
-
-The source directory must contain `project.godot`. The backend exports a fresh PCK, links the iOS arm64 engine installed in the toolchain, and applies the project's identity, name, orientation, and PNG icon. Match editor and engine versions; the validated environment uses Godot 4.5.1.
-
-## Signing, verification, and installation
+## Signing setup and device preparation
 
 ### Download existing EAS credentials
 
@@ -119,9 +96,32 @@ idevicepair -u "$UDID" pair
 idevicepair -u "$UDID" validate
 ```
 
-### Verify and install
-
 **Use an Ad Hoc profile that includes this UDID, not an App Store profile.** If needed, register the device and refresh/download the profile before building; the [signing guide](docs/signing.md) covers those steps and new credentials.
+
+## Expo
+
+```sh
+ios-anywhere --engine expo \
+  --project /path/to/my-app \
+  --credentials /private/credentials.json \
+  build --output /path/to/MyApp-01.ipa
+```
+
+The project needs `package.json`, `package-lock.json`, and an Expo configuration with `ios.bundleIdentifier`. The CLI creates an isolated copy, runs `npm ci`, iOS prebuild and CocoaPods, exports the app's build graphs, compiles native modules, generates Hermes bytecode, and signs the IPA. The original source is not modified. Project scripts and npm packages execute during this process: use trusted sources.
+
+## Godot
+
+```sh
+ios-anywhere --engine godot \
+  --project /path/to/my-game \
+  --bundle-id com.example.mygame \
+  --credentials /private/credentials.json \
+  build --output /path/to/MyGame-01.ipa
+```
+
+The source directory must contain `project.godot`. The backend exports a fresh PCK, links the iOS arm64 engine installed in the toolchain, and applies the project's identity, name, orientation, and PNG icon. Match editor and engine versions; the validated environment uses Godot 4.5.1.
+
+## Verify and install
 
 ```sh
 IOS_LINUX_UDID="$UDID" ios-anywhere verify /path/to/MyApp-01.ipa

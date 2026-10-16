@@ -1,6 +1,6 @@
 # Signing and device setup
 
-[Back to quick commands](../README.md#signing-verification-and-installation)
+[Back to quick commands](../README.md#signing-setup-and-device-preparation)
 
 Use the format in [credentials.example.json](../credentials.example.json). Certificate and profile paths can be absolute or relative to the credentials file. For direct device installation, the profile must match the app identity and include the device. Supply your certificate, password, and profile; the CLI does not sign in to Apple or create profiles automatically.
 
