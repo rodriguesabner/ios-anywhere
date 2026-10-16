@@ -76,7 +76,7 @@ def menu():
         action = choose('What do you want to do?', [
             ('Get started — guided setup, build and install', 'guided'),
             ('Build an IPA', 'build'), ('Install on iPhone', 'install'),
-            ('Manage signing & devices', 'manage'), ('Advanced', 'advanced'), ('Exit', 'exit')])
+            ('Manage signing & devices', 'manage'), ('Clean build caches', 'clean'), ('Advanced', 'advanced'), ('Exit', 'exit')])
         if action in ('manage', 'advanced'):
             choices = ([('Create Apple signing credentials', 'signing-setup'),
                         ('Choose or save an iPhone', 'device')] if action == 'manage' else
@@ -102,7 +102,9 @@ def arguments(action=None, engine=None, config=None):
         return None
     if action == 'exit':
         return None
-    if action == 'verify':
+    if action == 'clean':
+        argv = ['--config', config or select_config(), 'clean']
+    elif action == 'verify':
         argv = ['verify', path_prompt('IPA file', 'file')]
     elif action == 'signing-setup':
         config = config or select_config()
