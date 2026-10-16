@@ -1,23 +1,23 @@
-# Uso responsável
+# Responsible use
 
-O ios-anywhere destina-se ao desenvolvimento, à educação, à pesquisa, à interoperabilidade e à preservação de software que você possui ou está autorizado a usar, modificar e distribuir.
+ios-anywhere is intended for development, education, research, interoperability, and preservation of software you own or are authorized to use, modify, and distribute.
 
-Essa orientação se aplica a todas as versões, plataformas e canais de distribuição do projeto. Cada cópia mantém suas licenças aplicáveis.
+This guidance covers all project versions, platforms, and distribution channels. Each copy retains its applicable licenses.
 
-## Projetos e credenciais
+## Projects and credentials
 
-Use apenas projetos, recursos, certificados, chaves e provisioning profiles que você esteja autorizado a utilizar. Não envie credenciais, dados pessoais, código privado ou binários de terceiros em issues, pull requests ou logs públicos.
+Use only projects, assets, certificates, keys, and provisioning profiles you are authorized to use. Never include credentials, personal information, private source code, or third-party binaries in public issues, pull requests, or logs.
 
-O CLI exige credenciais válidas para assinatura. Ele não concede participação no Apple Developer Program, certificados, direitos de distribuição ou aprovação na App Store. Não autoriza falsificação de certificados, uso de chaves roubadas, compartilhamento não autorizado de credenciais ou contorno de restrições de licença.
+The CLI requires valid signing credentials. It grants no Apple Developer Program membership, certificates, distribution rights, or App Store approval. It does not authorize certificate forgery, stolen keys, unauthorized credential sharing, or bypassing license restrictions.
 
-## Ferramentas e SDKs externos
+## External tools and SDKs
 
-Você deve obter e usar legalmente os SDKs Apple, compiladores, engines, bibliotecas e demais ferramentas externas, conforme seus próprios termos. A disponibilidade de um arquivo em um mirror não concede direitos de uso ou redistribuição. O ios-anywhere não fornece licenças, chaves ou direitos de ativação dessas ferramentas.
+You must legally obtain and use Apple SDKs, compilers, engines, libraries, and other external tools under their own terms. Availability on a mirror does not grant use or redistribution rights. ios-anywhere provides no licenses, keys, or activation entitlements for these tools.
 
-O suporte técnico a um fluxo de compilação não constitui uma declaração de que todos os usos desse fluxo são permitidos pelos fornecedores. Revise os termos aplicáveis ao seu ambiente e à distribuição pretendida.
+Technical support for a build workflow does not establish that every use of that workflow is permitted by vendors. Review the terms applicable to your environment and intended distribution.
 
-## Limites técnicos
+## Technical limitations
 
-O projeto é experimental. Compilar, verificar a assinatura ou instalar um IPA não comprova compatibilidade universal, aceitação pela Apple ou funcionamento de todos os recursos. Consulte [Validação](docs/validation.md) e os limites do [README](README.md).
+The project is experimental. Compiling, verifying a signature, or installing an IPA does not prove universal compatibility, Apple acceptance, or correct operation of every feature. See [Validation](docs/validation.md) and the [README](README.md).
 
-Este documento expressa a orientação de uso do projeto; não modifica a licença MIT nem as licenças de terceiros. O projeto não é afiliado, patrocinado ou aprovado pela Apple, Expo ou Godot.
+This document states the project's responsible-use guidance; it does not modify MIT or third-party licenses. The project is not affiliated with, sponsored by, or endorsed by Apple, Expo, or Godot.

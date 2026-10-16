@@ -1,40 +1,40 @@
-# Prompt: site do ios-anywhere
+# Prompt: ios-anywhere website
 
-Copie o texto abaixo para a ferramenta ou agente que vai criar o site.
+Copy the following prompt into the tool or agent that will create the website.
 
 ---
 
-Crie um site de apresentação bonito, rápido e responsivo para **ios-anywhere**, um CLI experimental que compila, assina e instala apps iOS localmente no Linux, com backends Expo e Godot. Repositório: https://github.com/rodriguesabner/ios-anywhere.
+Create a polished, fast, responsive presentation website for **ios-anywhere**, an experimental CLI that compiles, signs, and installs iOS apps locally on Linux, with Expo and Godot backends. Repository: https://github.com/rodriguesabner/ios-anywhere.
 
-Antes de escrever o conteúdo, leia README.md, docs/toolchain.md, docs/validation.md e pyproject.toml do repositório. Use esses arquivos como fonte de verdade. Se o repositório privado não estiver acessível, peça esses arquivos; não invente capacidades.
+Before writing content, read README.md, docs/toolchain.md, docs/validation.md, llm.txt, and pyproject.toml in the repository. Treat these as the source of truth. If the private repository is inaccessible, request those files; do not invent capabilities. Write all website content in English.
 
-## Direção visual
+## Visual direction
 
-Quero uma ferramenta técnica com identidade forte, inspirada na clareza de https://github.com/morluto/rea e https://github.com/boykopovar/AnyPS5, sem copiar marcas, textos ou imagens. Tema grafite quase preto, texto marfim, acento verde-lima discreto e detalhes em azul frio. Tipografia sans-serif legível, monospace apenas para comandos e rótulos técnicos. Espaçamento generoso, bordas finas, composição editorial e um terminal demonstrativo como elemento central. Evite gradientes roxos, excesso de cartões, emojis decorativos e promessas genéricas de IA.
+Create a developer tool identity inspired by the clarity of https://github.com/morluto/rea and https://github.com/boykopovar/AnyPS5, without copying brands, text, or images. Use near-black graphite, ivory text, restrained lime accents, and cool blue details. Use a readable sans-serif font, with monospace reserved for commands and technical labels. Favor generous spacing, thin borders, editorial composition, and a demo terminal as the central visual. Avoid purple gradients, excessive cards, decorative emoji, and generic AI claims.
 
-O hero deve dizer “Do seu projeto ao iPhone.” e explicar abaixo “Builds locais de Expo e Godot no Linux.” Mostre o selo “Experimental” perto da proposta, sem escondê-lo no rodapé. O nome anywhere é a marca; não prometa suporte universal a sistemas operacionais.
+The hero should say “From your project to your iPhone.” with “Local Expo and Godot builds on Linux.” underneath. Display an “Experimental” label near the value proposition, not hidden in the footer. Anywhere is the brand; do not promise universal operating system support.
 
-## Estrutura e conteúdo
+## Structure and content
 
-1. Cabeçalho compacto com marca, links para Como funciona, Compatibilidade, Começar e GitHub.
-2. Hero com CTAs “Começar” (âncora da instalação) e “Ver no GitHub”. Inclua diagrama claro: Projeto → Compilar → Assinar → IPA → iPhone.
-3. Terminal com abas Expo e Godot, comandos reais copiados do README e botão Copiar. Identifique o terminal como exemplo de comando, não um build acontecendo no navegador. Use caminhos e identidades fictícios como /caminho/meu-app e com.example.meujogo. Mostre os parâmetros globais antes do subcomando.
-4. Explicação curta de cada etapa, destacando projeto explícito, toolchain externa e cache separado.
-5. Tabela honesta de compatibilidade: Expo SDK 54 e Godot 4.5.1 nos exemplos testados; Linux x86_64 validado; widgets/extensões fora do fluxo genérico; Godot C# e GDExtensions não suportados; dependências nativas exigem validação. Atualize apenas se a documentação comprovar outro estado.
-6. Instalação com clone, venv e pip install local. Explique que instalar o pacote não instala SDKs, compiladores ou credenciais. Link para docs/toolchain.md. Comando principal ios-anywhere; ios-linux permanece alias.
-7. FAQ: precisa de Mac para executar o fluxo preparado? Usa EAS Build? Precisa de certificado? Funciona com qualquer app? Pode enviar à App Store? Responda com os limites documentados. Certificado e perfil válidos continuam necessários. Não prometa aprovação da Apple; catálogos de assets pré-compilados ainda são necessários.
-8. Rodapé com links reais para repositório, toolchain, arquitetura e validação. Não invente Discord, licença, preços, depoimentos, métricas, estrelas ou clientes.
+1. Compact header with the brand and links to How it works, Compatibility, Get started, and GitHub.
+2. Hero with “Get started” linking to installation and “View on GitHub”. Include a clear diagram: Project → Compile → Sign → IPA → iPhone.
+3. Terminal with Expo and Godot tabs, real commands from the README, and a Copy button. Label it as a command example, not a live browser build. Use fictional paths and identities such as /path/to/my-app and com.example.mygame. Place global options before the subcommand.
+4. Brief explanation of each stage, highlighting explicit projects, an external toolchain, and separate caches.
+5. Honest compatibility table: Expo SDK 54 and Godot 4.5.1 in tested examples; Linux x86_64 validated; widgets/extensions outside the generic workflow; Godot C# and GDExtensions unsupported; native dependencies require validation. Update these claims only when the documentation proves another status.
+6. Installation with clone, venv, and local pip install. Explain that the package does not install SDKs, compilers, or credentials. Link to docs/toolchain.md. Use ios-anywhere as the primary command.
+7. FAQ covering Mac requirements, EAS Build, certificates, arbitrary apps, and App Store submission. Use documented limits. Valid certificates and profiles remain required. Do not promise Apple approval; precompiled asset catalogs are still necessary. Show the external EAS Submit command from the README only as a separate upload step.
+8. Footer linking to the real repository, toolchain, architecture, validation, disclaimer, contributing guide, and license. Do not invent a Discord server, prices, testimonials, metrics, stars, or customers.
 
-## Implementação e publicação
+## Implementation and publishing
 
-Faça um site estático em site/ com HTML, CSS e JavaScript mínimo, sem backend, banco, cadastro ou upload de arquivos. O site apresenta o CLI; não compila ou assina aplicativos. Nenhuma dependência de SDKs locais ou arquivos pessoais.
+Build a static website in site/ using HTML, CSS, and minimal JavaScript. No backend, database, registration, or file uploads. The website presents the CLI; it does not compile or sign applications. Do not depend on local SDKs or personal files.
 
-Prepare GitHub Pages com GitHub Actions oficial para upload e deploy do artefato site/, com permissões mínimas, ambiente github-pages, workflow_dispatch e execução em push na branch padrão apenas quando site/ ou o workflow mudar. Descubra a branch real antes de configurar. Todos os caminhos devem funcionar no subdiretório /ios-anywhere/, sem quebrar CSS, links e imagens. Use recursos locais sempre que possível.
+Prepare GitHub Pages using official GitHub Actions for artifact upload and deployment of site/, minimum permissions, the github-pages environment, workflow_dispatch, and pushes to the actual default branch only when site/ or its workflow changes. Discover the branch before configuring it. Paths must work under /ios-anywhere/ without breaking CSS, links, or images. Prefer local assets.
 
-Mantenha o repositório privado. Antes de habilitar ou executar a publicação, confira a disponibilidade de Pages para a conta/plano e apresente a visibilidade efetiva do site para aprovação. Nunca torne o repositório público para contornar uma limitação. O material do site deve ser revisado separadamente do código privado. Não publique certificados, chaves, UDIDs, provisioning profiles, IPAs, dados de apps, logs ou toolchains.
+Keep the repository private. Before enabling or executing publication, check Pages availability for the account/plan and present the site's actual visibility for approval. Never make the repository public to work around a limitation. Review website material separately from private code. Never publish certificates, keys, UDIDs, provisioning profiles, IPAs, application data, logs, or toolchains.
 
-## Qualidade e entrega
+## Quality and delivery
 
-Garanta navegação por teclado, foco visível, contraste adequado, HTML semântico, layout sem rolagem horizontal a partir de 360 px, respeito a prefers-reduced-motion e terminal sem armadilhas de acessibilidade. Copiar deve exibir confirmação acessível e lidar com falha da área de transferência. Inclua título, descrição e favicon próprios; não invente URL de produção ativa.
+Ensure keyboard navigation, visible focus, sufficient contrast, semantic HTML, no horizontal page overflow from 360 px upward, reduced-motion support, and an accessible terminal. Copy must announce success accessibly and handle clipboard failures. Include an original title, description, and favicon; do not invent an active production URL.
 
-Valide em tamanhos de celular e desktop, confira todos os links locais e teste as abas e o botão Copiar. Entregue arquivos, instruções de preview e deploy, capturas reais do resultado e uma lista curta do que não foi validado. Prepare tudo para revisão antes de publicar. Não implemente funcionalidades extras além desta landing page.
+Validate mobile and desktop sizes, check local links, and test tabs and Copy. Deliver files, preview/deployment instructions, real screenshots, and a short list of unverified items. Prepare everything for review before publishing. Do not add features beyond this landing page.

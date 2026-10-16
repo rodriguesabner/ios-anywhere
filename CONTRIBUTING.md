@@ -1,10 +1,10 @@
-# Contribuindo com ios-anywhere
+# Contributing to ios-anywhere
 
-Relate bugs ou proponha melhorias nas [issues](https://github.com/rodriguesabner/ios-anywhere/issues). Para alterações no código ou na documentação, envie um [pull request](https://github.com/rodriguesabner/ios-anywhere/pulls). O repositório é privado: esses recursos exigem acesso.
+Report bugs or suggest improvements in [issues](https://github.com/rodriguesabner/ios-anywhere/issues). Submit code or documentation changes through a [pull request](https://github.com/rodriguesabner/ios-anywhere/pulls). This is a private repository; these resources require access.
 
-## Preparação
+## Setup
 
-Use Python 3.11 ou mais recente:
+Use Python 3.11 or newer:
 
 ```sh
 python3 -m venv .venv
@@ -12,9 +12,9 @@ python3 -m venv .venv
 .venv/bin/ios-anywhere --help
 ```
 
-Os testes unitários não exigem certificados, aparelho ou SDKs Apple. Builds reais precisam da [toolchain externa](docs/toolchain.md). Leia a [arquitetura](docs/architecture.md) antes de alterar os backends.
+Unit tests need no certificates, device, or Apple SDKs. Real builds require the [external toolchain](docs/toolchain.md). Read the [architecture](docs/architecture.md) before changing backends.
 
-## Verificação
+## Checks
 
 ```sh
 .venv/bin/python -m unittest discover -s tests -v
@@ -22,12 +22,12 @@ Os testes unitários não exigem certificados, aparelho ou SDKs Apple. Builds re
 git diff --check
 ```
 
-Inclua um teste pequeno para lógica nova ou correção de regressão. Documente mudanças de configuração, comandos e compatibilidade. Preserve o alias `ios-linux`, os caminhos existentes e as variáveis `IOS_LINUX_*`, salvo migração explícita.
+Add a small test for new logic or a regression fix. Document changes to configuration, commands, and compatibility. Preserve the `ios-linux` alias, existing paths, and `IOS_LINUX_*` variables unless implementing an explicit migration.
 
-## Relatos e pull requests
+## Reports and pull requests
 
-Informe versão do CLI, distribuição/arquitetura Linux, engine e versão, comando usado, resultado esperado e erro observado. Remova segredos e dados pessoais dos logs. Use um exemplo mínimo que você possa compartilhar, sem anexar SDKs, IPAs ou projetos privados de terceiros.
+Include the CLI version, Linux distribution and architecture, engine and version, command, expected result, and observed error. Remove secrets and personal information from logs. Provide a minimal example you can share; do not attach SDKs, IPAs, or third-party private projects.
 
-Descreva o problema, a mudança e os testes executados. Distinga teste unitário, build concluído, instalação, execução no aparelho e processamento na App Store. Não apresente uma etapa como prova das demais. Veja [Validação](docs/validation.md).
+Describe the problem, change, and checks performed. Distinguish unit tests, successful compilation, installation, device execution, and App Store processing. Do not present one stage as proof of another. See [Validation](docs/validation.md).
 
-Preserve avisos de copyright e licenças de material reutilizado; atualize [THIRD_PARTY.md](THIRD_PARTY.md) quando necessário. Contribuições próprias são destinadas à licença MIT do projeto; material de terceiros mantém seus termos. Contribua apenas com material que você está autorizado a compartilhar.
+Preserve copyright and license notices for reused material; update [THIRD_PARTY.md](THIRD_PARTY.md) when needed. Original contributions are intended for the project's MIT license; third-party material retains its own terms. Contribute only material you are authorized to share.

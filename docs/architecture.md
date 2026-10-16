@@ -1,17 +1,17 @@
-# Arquitetura
+# Architecture
 
-`cli.py` valida os argumentos, verifica a configuração e impede builds concorrentes no mesmo cache. `config.py` conhece apenas a toolchain e o cache; nenhum projeto é armazenado como padrão.
+`cli.py` validates arguments, checks configuration, and prevents concurrent builds in the same cache. `config.py` knows only the toolchain and cache; no project is stored as a default.
 
-`expo.py` resolve dependências e grafos na cópia isolada do projeto. Os scripts recebem `IOS_LINUX_PROJECT`, `IOS_LINUX_BUILD` e `IOS_LINUX_TOOLCHAIN` explicitamente. Wrapper de clang/Ruby e exportador Xcode são parte do pacote; SDKs e executáveis são recursos externos.
+`expo.py` resolves dependencies and graphs inside an isolated project copy. Scripts receive `IOS_LINUX_PROJECT`, `IOS_LINUX_BUILD`, and `IOS_LINUX_TOOLCHAIN` explicitly. Clang/Ruby wrappers and the Xcode project exporter ship with the package; SDKs and executables remain external resources.
 
-`godot.py` copia o projeto, exporta PCK e linka bibliotecas genéricas do engine. Não usa um projeto exportado anterior como template. `templates/` contém apenas o suporte nativo mínimo e o manifesto padrão de privacidade do Godot, com a atribuição de origem preservada.
+`godot.py` copies the project, exports a PCK, and links generic engine libraries. It does not use a previously exported project as a template. `templates/` contains only minimal native support and the standard Godot privacy manifest, with attribution preserved.
 
-`signing.py` recebe a mesma configuração de credenciais nos dois backends. Assina uma pasta `.app`, gera um IPA temporário, verifica e publica com criação sem sobrescrita. Não armazena senhas no repositório, em argumentos de processo ou em relatórios.
+`signing.py` accepts the same credentials format for both backends. It signs an `.app` directory, produces a temporary IPA, verifies it, and writes the final file without overwriting existing files. Passwords are not stored in the repository, process arguments, or reports.
 
-A instalação usa libimobiledevice configurado localmente. A verificação de um IPA não exige toolchain nem login; usa Python e OpenSSL. Relatórios não afirmam validação no aparelho automaticamente.
+Installation uses locally configured libimobiledevice. IPA verification requires Python and OpenSSL, but no toolchain or login. Reports do not automatically claim device validation.
 
-## Migração da versão de laboratório
+## Migration from the laboratory version
 
-A versão 0.2 remove projetos implícitos, perfis fixos, provisionamento com conta pessoal e `--workspace`. Configure `--config`, passe `--project` sempre e forneça `--credentials` também para Godot. `package` isolado foi removido para evitar assinatura acidental de produtos antigos; use `build`. O comando `verify` permite inspecionar IPAs existentes.
+Version 0.2 removed implicit projects, fixed profiles, personal-account provisioning, and `--workspace`. Configure `--config`, always supply `--project`, and provide `--credentials` for Godot as well. The standalone `package` command was removed to prevent accidental signing of stale products; use `build`. Use `verify` to inspect existing IPAs.
 
-Nada da fonte original deve ser usado como diretório de saída de compilação. Configurações de projeto que apontem para fora da cópia ou usem fases Xcode personalizadas podem exigir adaptação. O CLI executa projetos confiáveis; não constitui sandbox para código de terceiros.
+Never use the original source tree as the compilation output directory. Project settings that reference paths outside the copy or use custom Xcode build phases may require adaptation. The CLI executes trusted projects; it is not a sandbox for third-party code.

@@ -1,10 +1,10 @@
-# Toolchain externa
+# External toolchain
 
-O CLI está separado dos aplicativos, mas o bootstrap de uma máquina limpa **ainda é manual**. Não há download automático de SDKs Apple nem distribuição dos binários neste repositório. Use SDKs obtidos por meios permitidos e confira as licenças de cada ferramenta.
+The CLI is independent of application projects, but bootstrapping a clean machine **is still manual**. This repository does not automatically download Apple SDKs or distribute toolchain binaries. Obtain SDKs through permitted means and check each tool's license.
 
-## Layout esperado
+## Expected layout
 
-O campo `toolchain` do config aponta para uma pasta com:
+The configuration's `toolchain` field points to a directory containing:
 
 ```text
 toolchain/
@@ -26,58 +26,58 @@ toolchain/
   godot/{godot,libgodot.a,libMoltenVK.a}
 ```
 
-Os campos `llvm_ar` e `installer` aceitam um executável no PATH ou caminho absoluto. `installer_lib`, opcional, define `LD_LIBRARY_PATH` só para libimobiledevice. Nenhuma credencial deve ser guardada na toolchain ou no repositório.
+`llvm_ar` and `installer` accept an executable on PATH or an absolute path. Optional `installer_lib` sets `LD_LIBRARY_PATH` only for libimobiledevice. Keep credentials outside the toolchain and repository.
 
-## Componentes usados no ambiente validado
+## Components in the validated environment
 
-| Componente | Origem/versão | Uso |
+| Component | Source/version | Purpose |
 | --- | --- | --- |
-| Swift Linux | Swift 6.4 RELEASE | Swift, Clang e shims |
-| Linker Mach-O | [darwin-tools-linux-llvm v1.1.0](https://github.com/xtool-org/darwin-tools-linux-llvm/releases/tag/v1.1.0) | `ld64.lld` |
-| Macros Apple no Linux | [OpenAppleMacros v1.3.0](https://github.com/xtool-org/OpenAppleMacros/releases/tag/v1.3.0) | servidor de plugins Swift |
-| SDK iOS | 18.5, 26.4 e 26.5 | Godot; compilação Expo; linkagem Expo, respectivamente |
-| Ruby/CocoaPods | Ruby 3.2, CocoaPods 1.17.0 | resolução de pods e exportação do projeto |
-| Macros Expo | plugin Linux compilado para o Expo instalado | `host-macros/ExpoModulesMacros-tool` |
-| Assinador | npm `zsign-wasm@0.0.4` | assinatura local |
-| Godot | editor Linux 4.5.1 + bibliotecas iOS release arm64 4.5.1 | PCK e engine |
-| LLVM ar | LLVM 18 no ambiente testado | arquivos estáticos |
+| Swift Linux | Swift 6.4 RELEASE | Swift, Clang, and shims |
+| Mach-O linker | [darwin-tools-linux-llvm v1.1.0](https://github.com/xtool-org/darwin-tools-linux-llvm/releases/tag/v1.1.0) | `ld64.lld` |
+| Apple macros on Linux | [OpenAppleMacros v1.3.0](https://github.com/xtool-org/OpenAppleMacros/releases/tag/v1.3.0) | Swift plugin server |
+| iOS SDK | 18.5, 26.4, and 26.5 | Godot; Expo compilation; Expo linking, respectively |
+| Ruby/CocoaPods | Ruby 3.2, CocoaPods 1.17.0 | Pod resolution and project export |
+| Expo macros | Linux plugin compiled for the installed Expo version | `host-macros/ExpoModulesMacros-tool` |
+| Signer | npm `zsign-wasm@0.0.4` | Local signing |
+| Godot | Linux editor 4.5.1 + iOS release arm64 libraries 4.5.1 | PCK and engine |
+| LLVM ar | LLVM 18 in the tested environment | Static archives |
 
-Os arquivos Darwin `Cxx`/`CxxStdlib` precisam corresponder ao compilador. O toolchain Swift para Linux sozinho não inclui todos os overlays Apple necessários. O diretório de macros contém o servidor Linux e os pontos de entrada de plugins esperados pelos interfaces do SDK. A macro Expo deve ser compilada para o host, não copiada de um executável macOS do npm. Esses itens são requisitos reais, não são instalados por `doctor`.
+Darwin `Cxx`/`CxxStdlib` files must match the compiler. The Linux Swift toolchain alone does not include every required Apple overlay. The macros directory contains the Linux server and plugin entry points expected by SDK interfaces. Build Expo macros for the host; do not copy a macOS executable from npm. These are real prerequisites, not installed by `doctor`.
 
-O conjunto de SDKs usado foi obtido do mirror `xybp888/iOS-SDKs`, revisão `ad607cb07fe4ad1c9b91cf970bd228c2a9253207`. Nos SDKs 26.5 e 27 desse mirror, `System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore.tbd` foi desativado (renomeado para `.tbd.mirror-backup`) porque o stub privado incompleto sobrepunha o público. Isso é específico desse conjunto; não aplique a outro SDK sem avaliar. O backend Expo usa SDK 26.4 para compilação C/Swift e 26.5 para linkagem. Os stubs 26.4 desse mirror omitem símbolos Swift de frameworks públicos, incluindo StoreKit. O SDK 27 não é mais selecionado pelo pipeline.
+The tested SDK set came from the `xybp888/iOS-SDKs` mirror, revision `ad607cb07fe4ad1c9b91cf970bd228c2a9253207`. In that mirror's SDKs 26.5 and 27, `System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore.tbd` was disabled by renaming it to `.tbd.mirror-backup`: the incomplete private stub overrode the public one. This workaround is specific to that set; do not apply it to another SDK without investigation. Expo uses SDK 26.4 for C/Swift compilation and 26.5 for linking. The mirror's 26.4 stubs omit Swift symbols in public frameworks, including StoreKit. The pipeline no longer selects SDK 27.
 
-Para preparar apenas o assinador, em uma pasta externa:
+To prepare the signer alone in an external directory, set `TOOLCHAIN` to your toolchain path and run:
 
 ```sh
 npm install --prefix "$TOOLCHAIN/signing" --save-exact zsign-wasm@0.0.4
 ```
 
-O pacote Python inclui os scripts do CLI; os scripts RubyGem devem usar `#!/usr/bin/env ruby` para evitar caminhos de uma máquina anterior. O backend configura Ruby, GEM_HOME, GEM_PATH e os wrappers de compilação por processo.
+The Python package includes CLI scripts. RubyGem scripts should use `#!/usr/bin/env ruby` to avoid paths from a previous machine. The backend configures Ruby, GEM_HOME, GEM_PATH, and compilation wrappers per process.
 
-## Objetos de runtime
+## Runtime objects
 
-Com compilador e SDKs disponíveis:
+Once the compiler and SDKs are available:
 
 ```sh
 python3 ios_linux/scripts/prepare-runtime.py --toolchain "$TOOLCHAIN"
 ```
 
-Para projetos Swift/C++, acrescente os fontes de [Swift 6.2 Cxx](https://github.com/swiftlang/swift/tree/swift-6.2-RELEASE/stdlib/public/Cxx):
+For Swift/C++ projects, provide [Swift 6.2 Cxx sources](https://github.com/swiftlang/swift/tree/swift-6.2-RELEASE/stdlib/public/Cxx):
 
 ```sh
 python3 ios_linux/scripts/prepare-runtime.py \
   --toolchain "$TOOLCHAIN" \
-  --cxx-sources /caminho/swift-6.2/stdlib/public/Cxx
+  --cxx-sources /path/to/swift-6.2/stdlib/public/Cxx
 ```
 
-O overlay é isolado em `cxx-runtime/modules`; o overlay padrão do compilador é preservado. O alvo do overlay é iOS 16.4. Reexecute o comando acima ao atualizar de uma instalação cujo overlay foi compilado para iOS 27. Isso não substitui testes de execução em aparelhos antigos. A combinação evita referências a `Swift.Iterable` que o aparelho usado no teste não fornecia. Arquivos binários de módulos não são universais entre compiladores: recompile ao trocar Swift.
+The overlay is isolated in `cxx-runtime/modules`; the compiler's default overlay is preserved. The overlay targets iOS 16.4. Rerun this command when upgrading from an installation whose overlay targeted iOS 27. This does not replace runtime testing on older devices. The combination avoids references to `Swift.Iterable`, which the tested device did not provide. Binary modules are not universal across compilers: rebuild when changing Swift.
 
 ## Godot
 
-Obtenha o editor Linux e o template iOS oficial da mesma versão. Coloque o editor em `godot/godot`, a biblioteca release **arm64 de dispositivo** em `godot/libgodot.a` e a biblioteca MoltenVK correspondente em `godot/libMoltenVK.a`. Não use slices de simulador. O CLI cria seu próprio suporte mínimo; não exige exportar um jogo anterior nem copiar os assets desse jogo.
+Obtain the Linux editor and official iOS template of the same version. Put the editor at `godot/godot`, the release **arm64 device** library at `godot/libgodot.a`, and the matching MoltenVK library at `godot/libMoltenVK.a`. Do not use simulator slices. The CLI generates its own minimal native support; it needs no earlier exported game or copied game assets.
 
-## Portabilidade e limpeza
+## Portability and cleanup
 
-A pasta de ferramentas pode ser movida se a configuração e os links internos forem ajustados. Os caminhos do clone e dos apps não são usados como fallback. `doctor` detecta arquivos necessários ausentes, mas não substitui um build real para avaliar compatibilidade entre versões.
+The toolchain directory can be moved if configuration and internal links are updated. Clone and application paths are not used as fallbacks. `doctor` detects missing required files but cannot replace a real build to evaluate version compatibility.
 
-O cache de um projeto pode ser apagado com todos os builds parados; o próximo build refaz dependências, grafos e módulos. A toolchain é durável: não é cache de projeto. Nunca apague sua pasta para limpar builds.
+A project's cache can be deleted while all builds are stopped; the next build regenerates dependencies, graphs, and modules. The toolchain is durable infrastructure, not a project cache. Never delete it to clean build outputs.

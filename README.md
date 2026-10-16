@@ -2,163 +2,190 @@
 
 # ios-anywhere
 
-### Do seu projeto ao iPhone. Build local no Linux.
+### From your project to your iPhone. Built locally on Linux.
 
-**Expo · Godot · Compilação · Assinatura · Instalação**
+**Expo · Godot · Compile · Sign · Install**
 
 ![Status: experimental](https://img.shields.io/badge/status-experimental-f0b429)
 ![Host: Linux x86_64](https://img.shields.io/badge/host-Linux_x86__64-20252b)
 ![Python: 3.11+](https://img.shields.io/badge/python-3.11%2B-3776ab)
 
-[Começar](#instalação) · [Expo](#expo) · [Godot](#godot) · [Compatibilidade](#compatibilidade) · [Documentação](#documentação)
+[Quick start](#installation) · [Expo](#expo) · [Godot](#godot) · [Compatibility](#compatibility) · [Submit to Apple](#submit-to-apple) · [Documentation](#documentation)
 
 </div>
 
 ---
 
-CLI experimental para compilar, assinar e instalar apps iOS **localmente no Linux**, com backends **Expo** e **Godot**. Não usa Mac nem EAS Build. Expo ainda usa a Expo CLI local para prebuild e bundle JavaScript.
+An experimental CLI to compile, sign, and install iOS apps **locally on Linux**, with **Expo** and **Godot** backends. Builds run without a Mac or EAS Build. The Expo backend still uses the local Expo CLI for prebuild and JavaScript bundling.
 
-O código não depende de nenhum app anterior. Cada build recebe um projeto, credenciais próprias e um destino. Compiladores, SDKs e caches ficam fora do repositório.
+Each build receives an explicit project, its own credentials, and an output path. Compilers, SDKs, and caches live outside this repository. No previous application is required as a template.
 
 ```text
-Projeto Expo / Godot → compilação local → assinatura → IPA → iPhone
+Expo / Godot project → local compilation → signing → IPA → iPhone
 ```
 
-## Compatibilidade
+## Compatibility
 
-| Caminho | Estado atual |
+| Workflow | Current status |
 | --- | --- |
-| Expo | Exemplos SDK 54 compilados e testados em iPhone; dependências nativas podem exigir adaptações. |
-| Godot | GDScript com engine 4.5.1; exemplos compilados e testados em iPhone. |
-| Assinatura | Certificado e provisioning profile válidos fornecidos pelo usuário. |
-| Widgets e extensões | Ainda fora do fluxo genérico deste CLI. |
-| App Store | Experimental; upload não equivale a processamento ou aprovação. Assets compilados ainda são necessários. |
-| Sistemas hospedeiros | Linux x86_64 validado. Windows e macOS não foram validados. |
+| Expo | SDK 54 examples built and tested on iPhone; native dependencies may need adaptation. |
+| Godot | GDScript with engine 4.5.1; examples built and tested on iPhone. |
+| Signing | Valid certificate and provisioning profile supplied by the user. |
+| Widgets and extensions | Not supported by the generic CLI workflow yet. |
+| App Store | Experimental; upload does not prove processing or approval. Precompiled assets are still required. |
+| Host systems | Linux x86_64 validated. Windows and macOS have not been validated. |
 
-Veja a evidência e o escopo dos testes em [Validação](docs/validation.md).
+See [Validation](docs/validation.md) for evidence and test scope.
 
-## Instalação
+## Installation
 
-Python 3.11+, Node/npm, OpenSSL e Pillow são necessários. Instale o CLI a partir deste repositório:
+Requires Python 3.11+, Node/npm, OpenSSL, and Pillow. Install from this repository:
 
 ```sh
 git clone https://github.com/rodriguesabner/ios-anywhere.git
 cd ios-anywhere
 python3 -m venv .venv
 .venv/bin/pip install .
-.venv/bin/ios-anywhere --version
+. .venv/bin/activate
+ios-anywhere --version
 ```
 
-Prepare a toolchain conforme [docs/toolchain.md](docs/toolchain.md), copie `config.example.json` para `~/.config/ios-linux/config.json` e ajuste os caminhos. **Instalar o pacote Python não instala compiladores, SDKs ou credenciais Apple.**
+Prepare the [external toolchain](docs/toolchain.md), copy `config.example.json` to `~/.config/ios-linux/config.json`, and adjust the paths. **Installing the Python package does not install compilers, SDKs, or Apple credentials.**
 
 ```sh
 ios-anywhere doctor
 ios-anywhere --engine godot doctor
 ```
 
-Use `--config /caminho/config.json` para outra configuração. O comando instalado pela venv fica em `.venv/bin/ios-anywhere`; adicione essa pasta ao PATH ou ative a venv.
+Use `--config /path/to/config.json` to select another configuration. Activate the virtual environment or use `.venv/bin/ios-anywhere` directly.
 
 ## Expo
 
 ```sh
 ios-anywhere --engine expo \
-  --project /caminho/meu-app \
-  --credentials /caminho/privado/credentials.json \
-  build --output /caminho/MeuApp-01.ipa
+  --project /path/to/my-app \
+  --credentials /private/credentials.json \
+  build --output /path/to/MyApp-01.ipa
 ```
 
-O projeto precisa de `package.json`, `package-lock.json` e configuração Expo com `ios.bundleIdentifier`. O CLI cria uma cópia, roda `npm ci`, prebuild iOS e CocoaPods, gera os grafos do próprio app, compila os módulos nativos, gera Hermes e assina o IPA. O código fonte original não é editado. Pacotes npm e scripts do projeto são executados: use fontes em que confia.
+The project needs `package.json`, `package-lock.json`, and an Expo configuration with `ios.bundleIdentifier`. The CLI creates an isolated copy, runs `npm ci`, iOS prebuild and CocoaPods, exports the app's build graphs, compiles native modules, generates Hermes bytecode, and signs the IPA. The original source is not modified. Project scripts and npm packages execute during this process: use trusted sources.
 
 ## Godot
 
 ```sh
 ios-anywhere --engine godot \
-  --project /caminho/meu-jogo \
-  --bundle-id com.example.meujogo \
-  --credentials /caminho/privado/credentials.json \
-  build --output /caminho/MeuJogo-01.ipa
+  --project /path/to/my-game \
+  --bundle-id com.example.mygame \
+  --credentials /private/credentials.json \
+  build --output /path/to/MyGame-01.ipa
 ```
 
-A fonte precisa conter `project.godot`. O backend exporta um PCK novo, linka o engine iOS arm64 instalado na toolchain e aplica identidade, nome, orientação e ícone PNG do projeto. Use editor e engine da mesma versão; o ambiente validado usa Godot 4.5.1.
+The source directory must contain `project.godot`. The backend exports a fresh PCK, links the iOS arm64 engine installed in the toolchain, and applies the project's identity, name, orientation, and PNG icon. Match editor and engine versions; the validated environment uses Godot 4.5.1.
 
-## Assinatura, instalação e verificação
+## Signing, verification, and installation
 
-Use o formato de `credentials.example.json`. Caminhos de certificado e perfil são relativos ao arquivo de credenciais ou absolutos. O perfil deve corresponder à identidade do app e incluir o aparelho. Certificado, senha e perfil são fornecidos por você; o CLI não entra na conta Apple nem cria perfis automaticamente.
+Use the format in [credentials.example.json](credentials.example.json). Certificate and profile paths can be absolute or relative to the credentials file. For direct device installation, the profile must match the app identity and include the device. Supply your certificate, password, and profile; the CLI does not sign in to Apple or create profiles automatically.
 
 ```sh
-ios-anywhere verify /caminho/MeuApp-01.ipa
-ios-anywhere install /caminho/MeuApp-01.ipa --udid SEU_UDID
+ios-anywhere verify /path/to/MyApp-01.ipa
+ios-anywhere install /path/to/MyApp-01.ipa --udid YOUR_UDID
 ```
 
-`verify` verifica hashes de código, recursos e assinatura CMS, além da correspondência com o perfil. Não consulta confiança/revogação na Apple, não valida compatibilidade de App Store e não prova funcionamento no aparelho. `IOS_LINUX_UDID` pode restringir a verificação ao aparelho pretendido.
+`verify` checks code and resource hashes, the CMS signature, and profile correspondence. It does not check Apple's trust or revocation status, establish App Store compatibility, or prove runtime behavior. `IOS_LINUX_UDID` can restrict verification to the intended device.
 
-`build` só publica o IPA depois da assinatura e verificação. Destinos existentes são recusados. A instalação é separada. `bundle` prepara e gera apenas recursos, sem assinatura. As opções globais (`--project`, `--credentials`, `--engine`, `--config`) vêm antes do comando.
+`build` writes the final IPA only after signing and verification. Existing output files are rejected. Installation is separate. `bundle` prepares resources without signing. Global options (`--project`, `--credentials`, `--engine`, `--config`) precede the subcommand.
 
-## Nome novo, configuração preservada
+## Submit to Apple
 
-O comando principal agora é `ios-anywhere`. `ios-linux` continua como alias. Os caminhos `~/.config/ios-linux`, `~/.local/share/ios-linux`, `~/.cache/ios-linux` e as variáveis `IOS_LINUX_*` foram mantidos para reutilizar instalações existentes. O módulo Python interno continua `ios_linux`.
+Upload an existing production IPA through **EAS Submit**, from your app's EAS-configured project directory:
 
-## Organização
+```sh
+npx eas-cli login
+npx eas-cli submit --platform ios --profile production --path /path/to/MyApp-AppStore.ipa
+```
 
-- `ios_linux/`: CLI, configuração e backends.
-- `ios_linux/scripts/`: compilação, exportação de grafos e assinatura compartilhadas.
-- `examples/`: apps mínimos independentes Expo e Godot; ajuste a identidade Expo antes de assinar.
-- `tests/`: testes sem certificados, aparelho ou SDKs Apple.
-- Toolchain externa: `~/.local/share/ios-linux/toolchain`.
-- Cache descartável: `~/.cache/ios-linux`; contém cópias de fontes, recursos, produtos e logs. Não compartilhe esse cache: apps e configurações podem conter dados privados.
-- Configuração local: `~/.config/ios-linux/config.json`.
+Configure the destination in the app's `eas.json`, merging this section with any existing configuration:
 
-Nenhum projeto é selecionado implicitamente. Não há dependência do diretório de execução nem do local do clone. O cache inclui caminhos absolutos gerados pelo CocoaPods; após movê-lo, refaça o build. Não mova/apague toolchain ou cache durante uma compilação.
+```json
+{
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "YOUR_NUMERIC_APP_STORE_CONNECT_APP_ID"
+      }
+    }
+  }
+}
+```
 
-## Limites
+Use an App Store distribution certificate/profile and a new build number for that app version. An Ad Hoc IPA intended for direct installation is not a store submission artifact. Complete Apple authentication when prompted, or configure your own App Store Connect API key using `ascApiKeyPath`, `ascApiKeyId`, and `ascApiKeyIssuerId` in the submission profile. Keep keys outside version control.
 
-- Experimental, validado em Linux x86_64. Não é um substituto universal do Xcode.
-- Expo: SDK 54 validado, app principal Swift com AppDelegate padrão. Extensões/widgets, fases nativas especiais, storyboards personalizados e AppDelegates próprios exigem suporte adicional. O fluxo antigo específico de widgets não faz parte desta distribuição.
-- Swift/C++ usa um overlay de compatibilidade separado, que deve ser recompilado após atualizar o CLI. O backend Expo configura mínimo 16.4; versões antigas do iOS não foram testadas. Godot configura mínimo 14.0, também sem validação em aparelhos antigos.
-- Godot: GDScript, engine padrão sem plugins externos; C# e GDExtensions são recusados. Versão/build são 1.0/1 neste backend. Recursos de privacidade específicos do jogo precisam de revisão antes de distribuição.
-- App Store: catálogos de assets ainda precisam ser pré-compilados. O empacotamento preserva `Assets.car` e ícones presentes em `build/app-resources`; gerar apenas PNGs não atende à exigência de catálogo da Apple.
-- A toolchain é instalada separadamente. SDKs Apple, bibliotecas de terceiros e credenciais não são publicados no repositório.
+This uses Expo's submission service, not EAS Build. The CLI has no built-in `submit` command. Uploading sends the binary to App Store Connect; Apple processing, TestFlight availability, and submission for App Review are separate steps. Asset catalogs and current Apple requirements must still be satisfied.
 
-## Desenvolvimento
+Sources: [EAS Submit for iOS](https://docs.expo.dev/submit/ios/), [submitting an existing IPA](https://docs.expo.dev/deploy/submit-to-app-stores/).
+
+## Project layout
+
+- `ios_linux/`: CLI, configuration, and backends.
+- `ios_linux/scripts/`: shared compilation, graph export, and signing scripts.
+- `examples/`: independent minimal Expo and Godot apps; change the Expo identity before signing.
+- `tests/`: tests requiring no certificates, device, or Apple SDKs.
+- External toolchain: `~/.local/share/ios-linux/toolchain`.
+- Disposable cache: `~/.cache/ios-linux`, containing source copies, resources, products, and logs. Do not share it: projects and configurations may contain private data.
+- Local configuration: `~/.config/ios-linux/config.json`.
+
+No project is selected implicitly. Builds do not depend on the working directory or clone location. CocoaPods generates absolute paths in the cache; rebuild after moving it. Do not move or delete the toolchain or cache during a build.
+
+## Limitations
+
+- Experimental, validated on Linux x86_64; not a universal Xcode replacement.
+- Expo: SDK 54 validated with a standard Swift AppDelegate. Extensions, widgets, custom native phases, storyboards, and AppDelegates require additional support. Earlier project-specific widget work is not part of this distribution.
+- Swift/C++ uses a separate compatibility overlay that must be rebuilt after the relevant CLI upgrade. Expo targets iOS 16.4 minimum; older devices have not been tested. Godot targets iOS 14.0 minimum, also without testing on older devices.
+- Godot: GDScript and the standard engine without external plugins. C# and GDExtensions are rejected. This backend sets version/build to 1.0/1. Review game-specific privacy requirements before distribution.
+- App Store: asset catalogs must already be compiled. Packaging preserves `Assets.car` and icons in `build/app-resources`; generating PNGs alone does not meet Apple's asset catalog requirement.
+- The toolchain is installed separately. Apple SDKs, external libraries, and credentials are not distributed in this repository.
+
+## Development
 
 ```sh
 python3 -m unittest discover -s tests -v
 ```
 
-Veja [docs/validation.md](docs/validation.md) para os testes reais e [docs/architecture.md](docs/architecture.md) para os limites entre código, ferramentas e builds.
+See [Validation](docs/validation.md) for real-world checks and [Architecture](docs/architecture.md) for boundaries between source, tools, and builds.
 
-## Perguntas frequentes
+## FAQ
 
-**Preciso de Mac para executar este fluxo?** Não no ambiente Linux preparado. A toolchain e os SDKs são pré-requisitos externos; o pacote Python não os instala.
+**Do I need a Mac to run this workflow?** Not in the prepared Linux environment. The external toolchain and SDKs are prerequisites; the Python package does not install them.
 
-**Preciso do EAS Build?** Não. O backend Expo usa ferramentas locais do ecossistema Expo. Enviar o IPA a uma loja é uma etapa separada.
+**Do I need EAS Build?** No. The Expo backend uses local Expo ecosystem tools. Store submission is a separate step.
 
-**Funciona com qualquer app?** Não. Os backends cobrem os caminhos descritos acima. Projetos com recursos nativos diferentes precisam de validação própria.
+**Does it work with every app?** No. Projects with different native requirements need their own validation.
 
-**Dispensa certificado Apple?** Não. O CLI assina com suas credenciais e respeita as restrições do provisioning profile.
+**Can I skip Apple signing credentials?** No. The CLI signs with your credentials and respects provisioning profile restrictions.
 
-## Documentação
+## Documentation
 
-- [Preparar a toolchain](docs/toolchain.md)
-- [Arquitetura e isolamento dos projetos](docs/architecture.md)
-- [Validação e testes em aparelho](docs/validation.md)
-- [Dependências e avisos de terceiros](THIRD_PARTY.md)
-- [Prompt para criar o site](docs/website-prompt.md)
+- [Toolchain setup](docs/toolchain.md)
+- [Architecture and project isolation](docs/architecture.md)
+- [Validation and device tests](docs/validation.md)
+- [Third-party components](THIRD_PARTY.md)
+- [Website creation prompt](docs/website-prompt.md)
+- [AI agent guide](llm.txt)
 
 ## Disclaimer
 
-Veja [DISCLAIMER.md](DISCLAIMER.md) para orientações de uso responsável, aplicáveis a todas as versões, plataformas e canais de distribuição do ios-anywhere. Cada cópia mantém suas licenças aplicáveis.
+See [DISCLAIMER.md](DISCLAIMER.md) for responsible-use guidance covering all ios-anywhere versions, platforms, and distribution channels. Each copy retains its applicable licenses.
 
-O projeto destina-se ao desenvolvimento, à pesquisa, à educação, à interoperabilidade e à preservação de software que você possui ou está autorizado a usar, modificar e distribuir. A assinatura exige credenciais válidas; o CLI não concede direitos de distribuição nem aprovação na App Store.
+The project is intended for development, research, education, interoperability, and preservation of software you own or are authorized to use, modify, and distribute. Signing requires valid credentials; the CLI grants no distribution rights or App Store approval.
 
 ## Contributing
 
-Contribuições são bem-vindas! [Abra uma issue](https://github.com/rodriguesabner/ios-anywhere/issues) para relatar um bug ou sugerir uma melhoria, ou [envie um pull request](https://github.com/rodriguesabner/ios-anywhere/pulls) com alterações no código ou na documentação. O acesso depende das permissões do repositório privado.
+Contributions are welcome! [Open an issue](https://github.com/rodriguesabner/ios-anywhere/issues) to report a bug or suggest a feature, or [send a pull request](https://github.com/rodriguesabner/ios-anywhere/pulls) to improve the code or docs. Access requires permission to this private repository.
 
-Veja [CONTRIBUTING.md](CONTRIBUTING.md) para preparar o ambiente e executar as verificações, [Validação](docs/validation.md) para o escopo dos testes e [Arquitetura](docs/architecture.md) para a estrutura do projeto.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and checks, [Validation](docs/validation.md) for test scope, and [Architecture](docs/architecture.md) for project structure.
 
 ## License
 
-O código próprio do ios-anywhere é licenciado sob a [MIT](LICENSE). Material de terceiros mantém suas licenças e avisos de copyright; veja [Componentes de terceiros](THIRD_PARTY.md).
+Project-authored code is licensed under [MIT](LICENSE). Third-party material retains its own licenses and copyright notices; see [Third-party components](THIRD_PARTY.md).
 
-**Você deve obter e estar autorizado a usar as ferramentas e os SDKs externos**, incluindo os SDKs Apple e as dependências da toolchain, conforme seus respectivos termos. O ios-anywhere não concede licença de ferramenta, chave ou direito de ativação. Cópias não autorizadas, chaves roubadas, compartilhamento indevido de credenciais e contorno de restrições de licença não são autorizados pelo projeto. Essa orientação não modifica a MIT nem as licenças de terceiros.
+**You must legally obtain and be authorized to use external tools and SDKs**, including Apple SDKs and toolchain dependencies, under their applicable terms. ios-anywhere grants no tool license, key, or activation entitlement. Unauthorized copies, stolen keys, unauthorized credential sharing, and bypassing license restrictions are not authorized by the project. This guidance does not amend MIT or third-party licenses.

@@ -1,0 +1,61 @@
+# ios-anywhere — AI agent guide
+
+Experimental local iOS compilation, signing, verification, and installation on Linux x86_64. Backends: Expo and Godot. Repository: https://github.com/rodriguesabner/ios-anywhere (private; access required).
+
+## Read first
+
+- README.md: installation, commands, capabilities, limits, and Apple submission.
+- docs/toolchain.md: external tools and manual setup.
+- docs/architecture.md: project isolation and implementation boundaries.
+- docs/validation.md: observed results and unverified behavior.
+- CONTRIBUTING.md: development setup and checks.
+- DISCLAIMER.md and THIRD_PARTY.md: authorized use and external dependencies.
+- LICENSE: MIT for project-authored code; third-party terms remain applicable.
+
+Resolve relative paths from the repository root. Read current code and documentation instead of assuming features from the project name. If this private repository is unavailable, request the relevant files; do not invent their contents.
+
+## Command contract
+
+Install: python3 -m venv .venv && .venv/bin/pip install .
+Help: .venv/bin/ios-anywhere --help
+Doctor: .venv/bin/ios-anywhere --engine expo doctor
+Godot doctor: .venv/bin/ios-anywhere --engine godot doctor
+Expo build: .venv/bin/ios-anywhere --engine expo --project /path/to/app --credentials /private/credentials.json build --output /path/to/new.ipa
+Godot build: .venv/bin/ios-anywhere --engine godot --project /path/to/game --bundle-id com.example.game --credentials /private/credentials.json build --output /path/to/new.ipa
+Verify: .venv/bin/ios-anywhere verify /path/to/app.ipa
+Install: .venv/bin/ios-anywhere install /path/to/app.ipa --udid DEVICE_UDID
+
+Global options precede subcommands. --project is required for build/bundle; --credentials for build; --bundle-id for Godot build/bundle. Existing output files are rejected. bundle generates resources without signing. There is no built-in submit command.
+
+Optional Apple upload uses EAS Submit from an EAS-configured application project:
+npx eas-cli submit --platform ios --profile production --path /path/to/AppStore.ipa
+This is an external submission service, not a local compiler or proof of Apple approval. Read README.md for credentials, profile, and destination requirements. Do not upload unless the user authorizes submission.
+
+## Implementation map
+
+- ios_linux/cli.py: arguments and orchestration.
+- ios_linux/config.py: toolchain and cache configuration.
+- ios_linux/expo.py and ios_linux/godot.py: isolated backend workflows.
+- ios_linux/signing.py: credentials, signing, verification, and final output.
+- ios_linux/scripts/: compiler helpers, graph export, and verifier.
+- tests/: SDK-free unit tests.
+
+The ios-linux command alias, ios_linux Python module, IOS_LINUX_* environment variables, and existing configuration paths remain part of compatibility. Do not rename these incidentally.
+
+## Operational rules
+
+Use explicit user-authorized projects, credentials, output paths, and devices. Never hardcode personal apps or use a previously built app as a hidden dependency. Keep original sources unchanged during builds. Do not expose secrets in logs, commits, arguments, or documentation. Never commit SDKs, toolchains, profiles, keys, IPAs, or project caches.
+
+Stop builds before deleting their temporary outputs. Identify exact cache paths; preserve source, credentials, durable toolchains, and requested final artifacts. Check free disk space before large builds. Do not change repository visibility to enable hosting.
+
+Only Linux x86_64 is validated. Expo SDK 54 and Godot 4.5.1 minimal examples ran on iPhone. Generic widgets/extensions are unsupported. Godot C# and GDExtensions are rejected. Godot sets version/build to 1.0/1. Precompiled Assets.car is still required for the documented App Store path. Clean-machine bootstrap and universal compatibility are not established.
+
+Verification checks local integrity/signatures, not Apple trust/revocation or runtime behavior. Distinguish build, verification, installation, launch, feature testing, upload, Apple processing, and review approval. Report only observed results.
+
+## Checks
+
+python3 -m unittest discover -s tests -v
+python3 -m compileall -q ios_linux tests
+git diff --check
+
+Documentation-only changes need link and command checks, not a new device build. Keep documentation in English. Do not run real signing, installation, submission, or expensive builds just to edit documentation.

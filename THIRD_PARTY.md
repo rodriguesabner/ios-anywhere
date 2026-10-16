@@ -1,8 +1,8 @@
-# Componentes de terceiros
+# Third-party components
 
-- `ios_linux/templates/dummy.cpp`: Godot Engine, licença MIT e atribuição preservadas no cabeçalho.
-- `ios_linux/templates/PrivacyInfo.xcprivacy`: manifesto padrão do template iOS do Godot Engine (MIT).
-- `ios_linux/scripts/os_version_check.c`: LLVM compiler-rt; copyright/licença preservados no cabeçalho.
-- `examples/expo-counter/package-lock.json`: versões de dependências npm; os pacotes não são incluídos.
+- `ios_linux/templates/dummy.cpp`: Godot Engine, MIT license and attribution preserved in the header.
+- `ios_linux/templates/PrivacyInfo.xcprivacy`: standard privacy manifest from the Godot Engine iOS template (MIT).
+- `ios_linux/scripts/os_version_check.c`: LLVM compiler-rt; copyright and license notice preserved in the header.
+- `examples/expo-counter/package-lock.json`: npm dependency versions; packages are not included.
 
-Swift, SDKs Apple, Godot/MoltenVK, Ruby, CocoaPods, LLVM, macros e zsign-wasm são dependências externas, não redistribuídas neste repositório. Suas licenças e requisitos continuam aplicáveis. O fato de este repositório ser privado não concede direitos sobre SDKs ou bibliotecas externos.
+Swift, Apple SDKs, Godot/MoltenVK, Ruby, CocoaPods, LLVM, macros, and zsign-wasm are external dependencies, not redistributed in this repository. Their licenses and requirements remain applicable. A private repository grants no rights to external SDKs or libraries.
