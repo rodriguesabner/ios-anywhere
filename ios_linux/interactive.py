@@ -95,7 +95,7 @@ def arguments():
                     argv += ['--bundle-id', bundle]
                 if action == 'build':
                     argv += ['--credentials', path_prompt('Signing credentials JSON', 'file')]
-                    output = path_prompt('New output IPA', 'new', Path.home() / f'{Path(project).name}.ipa')
+                    output = path_prompt('New output IPA', 'new', Path(project) / 'iosapp.ipa')
                     argv += ['build', '--output', output]
                 else:
                     argv += ['bundle']
