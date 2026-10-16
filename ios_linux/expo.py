@@ -949,6 +949,15 @@ def stage_target(job, app, libraries, dest):
     built_jsi = build / "products/ExpoModulesJSI/ExpoModulesJSI.framework"
     if built_jsi.exists():
         vendor_frameworks = [fw for fw in vendor_frameworks if fw.name != built_jsi.name] + [built_jsi]
+    aggregate = "Pods-" + name
+    link_settings = project / "ios/Pods/Target Support Files" / aggregate / (aggregate + ".release.xcconfig")
+    if link_settings.exists():
+        import shlex
+        flags = shlex.split(next(line.split("=", 1)[1] for line in link_settings.read_text().splitlines()
+                                 if line.startswith("OTHER_LDFLAGS =")))
+        linked_frameworks = {flags[i + 1] for i, flag in enumerate(flags[:-1])
+                             if flag in ("-framework", "-weak_framework")}
+        vendor_frameworks = [fw for fw in vendor_frameworks if fw.stem in linked_frameworks]
     for fw in vendor_frameworks:
         data = (fw / fw.stem).read_bytes()
 

@@ -43,8 +43,8 @@ existing limited fallbacks; arbitrary Xcode script phases, watch apps, test targ
 multiple host applications, nonstandard host AppDelegate lifecycles, different
 signing certificates per target, and
 App Store submission are not implemented. Distribution validation currently
-expects device provisioning profiles. Framework discovery still uses the pod
-frameworks available in the generated project; it is not a general Xcode executor.
+expects device provisioning profiles. Dynamic vendor frameworks are embedded only when named by the target’s CocoaPods
+link settings. This is not a general Xcode executor.
 
 SDK-free regression tests cover target classification, dependency cycles/missing
 targets, per-target link inputs, C-source compilation dispatch, two embedded

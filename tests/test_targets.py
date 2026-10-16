@@ -60,7 +60,16 @@ class TargetsTests(unittest.TestCase):
             (widget/'ExpoWidgets.bundle').write_bytes(b'widget javascript')
             (widget/'Info.plist').write_bytes(plistlib.dumps({'CFBundlePackageType':'BNDL'}))
             (resources/'main.jsbundle').write_bytes(b'app javascript')
+            framework = job/'project/ios/Pods/Vendor/AppOnly.xcframework/ios-arm64/AppOnly.framework'
+            framework.mkdir(parents=True)
+            (framework/'AppOnly').write_bytes(bytes.fromhex('cffaedfe') + bytes(8) + (6).to_bytes(4,'little'))
+            for item in apps:
+                aggregate='Pods-'+item['name']
+                cfg=job/'project/ios/Pods/Target Support Files'/aggregate/(aggregate+'.release.xcconfig')
+                cfg.parent.mkdir(parents=True)
+                cfg.write_text('OTHER_LDFLAGS = '+('-framework AppOnly' if item['name']=='App' else '$(inherited)')+'\n')
             dest = expo.stage(job)
+            self.assertTrue((dest/'Frameworks/AppOnly.framework/AppOnly').is_file())
             self.assertTrue((dest/'main.jsbundle').is_file())
             for name in ('Widget','Share'):
                 ext = dest/'PlugIns'/(name+'.appex')
@@ -71,6 +80,7 @@ class TargetsTests(unittest.TestCase):
                 self.assertNotIn('UIApplicationSceneManifest', info)
                 self.assertNotIn('UILaunchScreen', info)
                 self.assertFalse((ext/'main.jsbundle').exists())
+                self.assertFalse((ext/'Frameworks/AppOnly.framework').exists())
                 self.assertEqual((ext/name).read_bytes(), name.encode())
                 self.assertEqual((ext/'ExpoWidgets.bundle/ExpoWidgets.bundle').exists(), name=='Widget')
             self.assertEqual(expo.stage(job), dest)  # Clean restaging.
