@@ -228,6 +228,68 @@ def graphs(job):
     )
 
 
+def target_kind(target):
+    kind = target.get("product_type")
+    if kind == "com.apple.product-type.application":
+        return "app"
+    if kind == "com.apple.product-type.app-extension":
+        return "extension"
+    if kind is None:  # Graphs exported by older versions.
+        return "extension" if target["settings"].get("APPLICATION_EXTENSION_API_ONLY") == "YES" else "app"
+    raise ValueError("Unsupported product type for " + target["name"] + ": " + kind)
+
+
+def target_plan(apps):
+    mains = [t for t in apps if target_kind(t) == "app"]
+    if len(mains) != 1:
+        raise ValueError("Expected exactly one application and zero or more app extensions.")
+    names = [t["name"] for t in apps]
+    if len(set(names)) != len(names) or any(Path(n).name != n or n in (".", "..") for n in names):
+        raise ValueError("Target names must be unique path components.")
+    return mains[0], [t for t in apps if target_kind(t) == "extension"]
+
+
+def target_dependencies(libraries, app):
+    by_name = {t["name"]: t for t in libraries}
+    result, visited, active = [], set(), set()
+    def visit(name):
+        if name in active:
+            raise ValueError("Cyclic CocoaPods dependency: " + name)
+        if name in visited:
+            return
+        if name not in by_name:
+            raise ValueError("Missing CocoaPods target: " + name)
+        active.add(name)
+        target = by_name[name]
+        for dependency in target.get("dependencies", []):
+            visit(dependency)
+        active.remove(name)
+        visited.add(name)
+        result.append(target)
+    visit("Pods-" + app["name"])
+    return result
+
+
+def bundle_widgets(config, job):
+    project, build = job / "project", job / "build"
+    libraries, apps = graphs(job)
+    target_plan(apps)
+    if not any(t["name"] == "ExpoWidgets" for t in libraries):
+        return
+    package = project / "node_modules/expo-widgets"
+    output = build / "app-resources/ExpoWidgets.bundle"
+    if output.exists():
+        shutil.rmtree(output)
+    output.mkdir()
+    env = dict(tool_env(config, project, build), EXPO_OVERRIDE_METRO_CONFIG=str(package / "metro.config.js"))
+    run(["node", project / "node_modules/expo/bin/cli", "export:embed", "--platform", "ios",
+         "--bundle-output", output / "ExpoWidgets.bundle", "--entry-file", package / "bundle/index.ts",
+         "--dev", "false", "--skip-server"], project, job / "widgets.log", env)
+    (output / "Info.plist").write_bytes(plistlib.dumps({
+        "CFBundleIdentifier": "org.cocoapods.ExpoWidgets", "CFBundleName": "ExpoWidgets",
+        "CFBundlePackageType": "BNDL", "CFBundleVersion": "1"}))
+
+
 def constants_script(project):
     # npm can nest Expo's dependencies instead of hoisting them to the app root.
     return (
@@ -344,6 +406,8 @@ def bundle(config, job):
             env,
         )
 
+    bundle_widgets(config, job)
+
 
 def patch_splash(project):
     path = project / "node_modules/expo-splash-screen/ios/SplashScreenManager.swift"
@@ -454,15 +518,8 @@ def native(config, job):
     patch_native_sources(project)
     libraries, apps = graphs(job)
 
-    if len(apps) != 1:
-        raise ValueError("External Expo projects: extensions still require resource and signing adaptations.")
-
-    patch_scene(project, apps)
-
-    if any(
-        Path(f["path"]).suffix in (".m", ".mm", ".c", ".cpp") for a in apps for f in a["sources"]
-    ):
-        raise ValueError("The external main target must currently use Swift.")
+    main, _ = target_plan(apps)
+    patch_scene(project, [main])
 
     rn = project / "node_modules/react-native"
     version = json.loads((rn / "package.json").read_text())["version"]
@@ -473,12 +530,25 @@ def native(config, job):
         "sdks/hermes-engine/utils/replace_hermes_version.js",
     ]:
         if (rn / script).exists():
+            artifact_version = version
+            if script.endswith("replace_hermes_version.js"):
+                # Recent RN releases version Hermes independently of React Native.
+                spec = json.loads((pods / "Local Podspecs/hermes-engine.podspec.json").read_text())
+                artifact_version = spec["version"]
+                archive = pods / "hermes-engine-artifacts" / ("hermes-ios-" + artifact_version + "-release.tar.gz")
+                if not archive.is_file():
+                    raise ValueError("Missing resolved Release Hermes archive: " + str(archive))
+                if not [fw for fw in (pods / "hermes-engine").rglob("ios-arm64/*.framework") if (fw / fw.stem).is_file()]:
+                    (pods / ".last_build_configuration").unlink(missing_ok=True)
             run(
-                ["node", rn / script, "-c", "Release", "-r", version, "-p", pods],
+                ["node", rn / script, "-c", "Release", "-r", artifact_version, "-p", pods],
                 pods,
                 job / (Path(script).stem + ".log"),
                 env,
             )
+
+    if (rn / "sdks/hermes-engine/utils/replace_hermes_version.js").exists() and not [fw for fw in (pods / "hermes-engine").rglob("ios-arm64/*.framework") if (fw / fw.stem).is_file()]:
+        raise ValueError("Hermes Release extraction did not produce a framework.")
 
     products = build / "products"
 
@@ -524,32 +594,11 @@ def native(config, job):
             if not dest.exists() and not dest.is_symlink():
                 dest.symlink_to(source)
 
-    # Select dependencies from the app's own aggregate target, in dependency order.
-    by_name = {t["name"]: t for t in libraries}
-    selected = []
-    visited = set()
+    selected = list({t["name"]: t for app in apps
+                     for t in target_dependencies(libraries, app)}.values())
 
-    def visit(name):
-        if name in visited:
-            return
-
-        visited.add(name)
-
-        if name not in by_name:
-            return
-
-        target = by_name[name]
-
-        for dependency in target["dependencies"]:
-            visit(dependency)
-
-        selected.append(target)
-
-    for app in apps:
-        visit("Pods-" + app["name"])
-
-    if not selected:
-        raise ValueError("The graph does not contain the app's CocoaPods aggregate target.")
+    if any(t["name"] == "ExpoModulesJSI" for t in selected):
+        run(["python3", SCRIPTS / "build-jsi.py"], project, job / "build-jsi.log", env)
 
     for target in selected + apps:
         if any(s["path"].endswith(".swift") for s in target["sources"]):
@@ -572,7 +621,7 @@ def compile_and_link(config, job, selected, apps):
 
     sources = [
         t
-        for t in selected
+        for t in selected + apps
         if any(
             Path(s["path"]).suffix in (".c", ".m", ".mm", ".cpp", ".cc", ".cxx", ".S", ".s")
             for s in t["sources"]
@@ -607,11 +656,13 @@ def compile_and_link(config, job, selected, apps):
     import shlex
 
     frameworks = list(pods.rglob("*.xcframework/ios-arm64/*.framework"))
-    sdk = config.toolchain / "sdks/iPhoneOS26.5.sdk"
-    needs_cxx = any(t["settings"].get("SWIFT_OBJC_INTEROP_MODE") == "objcxx" for t in selected)
-    minimum = "16.4"
-
+    sdk = config.toolchain / "sdks" / (config.sdk or "iPhoneOS26.5.sdk")
+    sdk_version = json.loads((sdk / "SDKSettings.json").read_text())["Version"] if config.sdk else "26.5"
     for app in apps:
+        minimum = str(app["settings"].get("IPHONEOS_DEPLOYMENT_TARGET") or "16.4")
+        dependencies = target_dependencies(selected, app)
+        dependency_names = {t["name"] for t in dependencies}
+        needs_cxx = any(t["settings"].get("SWIFT_OBJC_INTEROP_MODE") == "objcxx" for t in dependencies + [app])
         name = app["name"]
         out = products / name
         out.mkdir(exist_ok=True)
@@ -633,6 +684,9 @@ def compile_and_link(config, job, selected, apps):
 
         flags = [f for f in flags if f != "$(inherited)"]
 
+        if not list(out.glob("*.o")):
+            raise ValueError("No compiled objects for target " + name)
+
         cmd = [
             tools / "darwin-tools/bin/ld64.lld",
             "-arch",
@@ -640,7 +694,7 @@ def compile_and_link(config, job, selected, apps):
             "-platform_version",
             "ios",
             minimum,
-            "26.5",
+            sdk_version,
             "--error-limit=0",
             "-syslibroot",
             sdk,
@@ -660,14 +714,15 @@ def compile_and_link(config, job, selected, apps):
             config.toolchain / "os_version_check.o",
         ]
 
-        cmd += ["-L" + str(a.parent) for a in archives]
+        cmd += ["-L" + str(a.parent) for a in archives if a.parent.name in dependency_names]
+        cmd += ["-F" + str(products / "ExpoModulesJSI")]
         cmd += ["-F" + str(f.parent) for f in frameworks] + flags
         cmd += [tools / "cxx-runtime/compat-markers.o"]
 
         if needs_cxx:
             cmd += [tools / "cxx-runtime/Cxx.o"]
 
-        if app["settings"].get("APPLICATION_EXTENSION_API_ONLY") == "YES":
+        if target_kind(app) == "extension":
             cmd += ["-application_extension", "-e", "_NSExtensionMain", "-u", "_main"]
 
         (out / "link-command.json").write_text(json.dumps(list(map(str, cmd)), indent=2))
@@ -675,33 +730,36 @@ def compile_and_link(config, job, selected, apps):
 
 
 def stage(job):
-    project, build = job / "project", job / "build"
+    build = job / "build"
     libraries, apps = graphs(job)
 
-    # shortcut: extension resource scripts need dedicated support before external widget builds.
-    if len(apps) != 1:
-        raise ValueError(
-            "The external backend still requires adaptation for multiple targets/extensions."
-        )
-
-    app = apps[0]
-    name = app["name"]
-    settings = app["settings"]
+    main, extensions = target_plan(apps)
     root = build / "stage"
-
     if root.exists():
         shutil.rmtree(root)
+    dest = root / "Payload" / (main["name"] + ".app")
+    for app in [main, *extensions]:
+        target_dest = dest if app is main else dest / "PlugIns" / (app["name"] + ".appex")
+        dependencies = target_dependencies(libraries, app) if any(t.get("name", "").startswith("Pods-") for t in libraries) else libraries
+        stage_target(job, app, dependencies, target_dest)
+    return dest
 
-    dest = root / "Payload" / (name + ".app")
+
+def stage_target(job, app, libraries, dest):
+    project, build = job / "project", job / "build"
+    extension = target_kind(app) == "extension"
+    name = app["name"]
+    settings = app["settings"]
     dest.mkdir(parents=True)
     info = plistlib.loads((project / "ios" / settings["INFOPLIST_FILE"]).read_bytes())
 
     variables = {
         **settings,
-        "PRODUCT_BUNDLE_PACKAGE_TYPE": "APPL",
+        "PRODUCT_BUNDLE_PACKAGE_TYPE": "XPC!" if extension else "APPL",
         "PRODUCT_NAME": name,
         "EXECUTABLE_NAME": name,
         "DEVELOPMENT_LANGUAGE": "en",
+        "RCT_METRO_PORT": settings.get("RCT_METRO_PORT") or "8081",
         "MARKETING_VERSION": settings.get("MARKETING_VERSION") or "1.0",
         "CURRENT_PROJECT_VERSION": settings.get("CURRENT_PROJECT_VERSION") or "1",
     }
@@ -716,10 +774,22 @@ def stage(job):
         )
 
     info = json.loads(raw)
+    # Generated extension plists rely on Xcode to supply these product settings.
+    for key, value in {
+        "CFBundleIdentifier": settings.get("PRODUCT_BUNDLE_IDENTIFIER"),
+        "CFBundleName": name,
+        "CFBundleInfoDictionaryVersion": "6.0",
+        "CFBundleShortVersionString": variables["MARKETING_VERSION"],
+        "CFBundleVersion": str(variables["CURRENT_PROJECT_VERSION"]),
+    }.items():
+        if value is not None:
+            info.setdefault(key, value)
+    if not info.get("CFBundleIdentifier"):
+        raise ValueError("Missing bundle identifier for target " + name)
 
     info.update(
         CFBundleExecutable=name,
-        CFBundlePackageType="APPL",
+        CFBundlePackageType="XPC!" if extension else "APPL",
         CFBundleSupportedPlatforms=["iPhoneOS"],
         DTPlatformName="iphoneos",
         UIDeviceFamily=[
@@ -746,31 +816,40 @@ def stage(job):
             DTPlatformBuild=sdk_system["ProductBuildVersion"],
         )
 
-    info.pop("UILaunchStoryboardName", None)
-    info["UILaunchScreen"] = {}
+    if not extension:
+        info.pop("UILaunchStoryboardName", None)
+        info["UILaunchScreen"] = {}
 
-    info.setdefault(
-        "UIApplicationSceneManifest",
-        {
-            "UIApplicationSupportsMultipleScenes": False,
-            "UISceneConfigurations": {
-                "UIWindowSceneSessionRoleApplication": [
-                    {
-                        "UISceneConfigurationName": "Default Configuration",
-                        "UISceneDelegateClassName": (settings.get("PRODUCT_MODULE_NAME") or name)
-                        + ".SceneDelegate",
-                    }
-                ]
+        info.setdefault(
+            "UIApplicationSceneManifest",
+            {
+                "UIApplicationSupportsMultipleScenes": False,
+                "UISceneConfigurations": {
+                    "UIWindowSceneSessionRoleApplication": [
+                        {
+                            "UISceneConfigurationName": "Default Configuration",
+                            "UISceneDelegateClassName": (settings.get("PRODUCT_MODULE_NAME") or name)
+                            + ".SceneDelegate",
+                        }
+                    ]
+                },
             },
-        },
-    )
+        )
+
+    entitlement_path = settings.get("CODE_SIGN_ENTITLEMENTS")
+    if entitlement_path:
+        entitlements = (project / "ios" / entitlement_path).read_text()
+        entitlements = re.sub(r"\$[({]([^)}]+)[)}]", lambda m: str(variables.get(m[1]) or m[0]), entitlements)
+        if "$(" in entitlements or "${" in entitlements:
+            raise ValueError("Unresolved entitlement variables for " + name)
+        (dest / "ios-anywhere-entitlements.plist").write_text(entitlements)
 
     binary = build / "products" / name / name
     shutil.copy2(binary, dest / name)
     (dest / name).chmod(0o755)
 
     for target in libraries:
-        if not target["resources"]:
+        if not target["resources"] or target.get("name") == "ExpoWidgets":
             continue
 
         resource = dest / ((target["settings"].get("PRODUCT_NAME") or target["name"]) + ".bundle")
@@ -798,6 +877,10 @@ def stage(job):
                 shutil.copy2(src, resource / src.name)
 
     for src in (build / "app-resources").iterdir():
+        if extension and src.name not in ("EXConstants.bundle", "ExpoWidgets.bundle"):
+            continue
+        if src.name == "ExpoWidgets.bundle" and not any(t.get("name") == "ExpoWidgets" for t in libraries):
+            continue
         if src.is_dir():
             shutil.copytree(src, dest / src.name, dirs_exist_ok=True)
         else:
@@ -814,6 +897,18 @@ def stage(job):
                     }
                 )
             )
+
+    for filename in app.get("resources", []):
+        src = Path(filename)
+        # Asset catalogs and storyboards use the existing Linux fallbacks below.
+        if src.suffix in (".xcassets", ".storyboard"):
+            continue
+        if not src.exists():
+            raise ValueError("Target resource not generated: " + filename)
+        if src.is_dir():
+            shutil.copytree(src, dest / src.name, dirs_exist_ok=True)
+        else:
+            shutil.copy2(src, dest / src.name)
 
     for src in (project / "ios" / name).rglob("*"):
         if src.name in (
@@ -865,7 +960,20 @@ def stage(job):
 
     (dest / "Info.plist").write_bytes(plistlib.dumps(info))
 
-    for fw in (project / "ios/Pods").rglob("*.xcframework/ios-arm64/*.framework"):
+    vendor_frameworks = list((project / "ios/Pods").rglob("*.xcframework/ios-arm64/*.framework"))
+    built_jsi = build / "products/ExpoModulesJSI/ExpoModulesJSI.framework"
+    if built_jsi.exists():
+        vendor_frameworks = [fw for fw in vendor_frameworks if fw.name != built_jsi.name] + [built_jsi]
+    aggregate = "Pods-" + name
+    link_settings = project / "ios/Pods/Target Support Files" / aggregate / (aggregate + ".release.xcconfig")
+    if link_settings.exists():
+        import shlex
+        flags = shlex.split(next(line.split("=", 1)[1] for line in link_settings.read_text().splitlines()
+                                 if line.startswith("OTHER_LDFLAGS =")))
+        linked_frameworks = {flags[i + 1] for i, flag in enumerate(flags[:-1])
+                             if flag in ("-framework", "-weak_framework")}
+        vendor_frameworks = [fw for fw in vendor_frameworks if fw.stem in linked_frameworks]
+    for fw in vendor_frameworks:
         data = (fw / fw.stem).read_bytes()
 
         # MH_DYLIB only; static vendor frameworks are already linked into the executable.

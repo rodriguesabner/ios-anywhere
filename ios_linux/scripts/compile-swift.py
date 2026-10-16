@@ -36,9 +36,9 @@ for name in sys.argv[1:]:
     cmd = [
         str(toolroot / "swift/usr/bin/swiftc"),
         "-target",
-        "arm64-apple-ios16.4",
+        "arm64-apple-ios" + str(s.get("IPHONEOS_DEPLOYMENT_TARGET") or "16.4"),
         "-sdk",
-        str(toolroot / "sdks/iPhoneOS26.4.sdk"),
+        str(toolroot / "sdks" / (os.environ.get("IOS_LINUX_SDK") or "iPhoneOS26.4.sdk")),
         "-resource-dir",
         str(toolroot / "darwin-resource"),
         "-I",
@@ -136,7 +136,7 @@ for name in sys.argv[1:]:
 
     cmd = [x.replace(mac_tool, str(toolroot / "host-macros/ExpoModulesMacros-tool")) for x in cmd]
 
-    if s.get("APPLICATION_EXTENSION_API_ONLY") == "YES":
+    if s.get("APPLICATION_EXTENSION_API_ONLY") == "YES" or t.get("product_type") == "com.apple.product-type.app-extension":
         cmd += ["-application-extension"]
 
     cmd += sources

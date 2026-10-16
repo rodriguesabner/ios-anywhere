@@ -7,8 +7,8 @@ work = toolroot.parent
 root = Path(os.environ["IOS_LINUX_BUILD"])
 project = Path(os.environ["IOS_LINUX_PROJECT"])
 pods = project / "ios/Pods"
-sdk = toolroot / "sdks/iPhoneOS26.4.sdk"
-graph = json.loads((root / "pods-graph.json").read_text())
+sdk = toolroot / "sdks" / (os.environ.get("IOS_LINUX_SDK") or "iPhoneOS26.4.sdk")
+graph = json.loads((root / "pods-graph.json").read_text()) + json.loads((root / "app-graph.json").read_text())
 products = root / "products"
 framework_dirs = list(pods.rglob("*.xcframework/ios-arm64/*.framework"))
 
@@ -40,7 +40,9 @@ def args(value):
 def command(t, source):
     s = t["settings"]
     path = Path(source["path"])
-    cpp = path.suffix in (".cpp", ".cc", ".cxx", ".mm")
+    source_flags = args((source.get("flags") or {}).get("COMPILER_FLAGS"))
+    language = source_flags[source_flags.index("-x") + 1] if "-x" in source_flags else ""
+    cpp = path.suffix in (".cpp", ".cc", ".cxx", ".mm") or language in ("c++", "objective-c++")
     objc = path.suffix in (".m", ".mm")
     out = products / t["name"]
     out.mkdir(parents=True, exist_ok=True)
@@ -49,11 +51,9 @@ def command(t, source):
     cmd = [
         str(toolroot / "swift/usr/bin/clang++" if cpp else toolroot / "swift/usr/bin/clang"),
         "-target",
-        "arm64-apple-ios16.4",
+        "arm64-apple-ios" + str(s.get("IPHONEOS_DEPLOYMENT_TARGET") or "16.4"),
         "-isysroot",
         str(sdk),
-        "-c",
-        str(path),
         "-o",
         str(obj),
         "-O1",
@@ -64,6 +64,9 @@ def command(t, source):
         "-fmodules-cache-path=" + str(root / "clang-cache"),
         "-Wno-error",
     ]
+
+    if s.get("APPLICATION_EXTENSION_API_ONLY") == "YES" or t.get("product_type") == "com.apple.product-type.app-extension":
+        cmd += ["-fapplication-extension"]
 
     if cpp:
         cmd += [
@@ -116,7 +119,7 @@ def command(t, source):
     if pch and path.suffix not in (".S", ".s"):
         cmd += ["-include", str(pods / pch)]
 
-    cmd += args((source.get("flags") or {}).get("COMPILER_FLAGS"))
+    cmd += source_flags
     cmd += ["-Wno-error"]
 
     cmd = [
@@ -127,6 +130,8 @@ def command(t, source):
         and not (x.startswith("-fmodule-map-file=") and not Path(x.split("=", 1)[1]).exists())
     ]
 
+    # Clang -x applies only to inputs following the option.
+    cmd += ["-c", str(path)]
     return cmd, obj
 
 
