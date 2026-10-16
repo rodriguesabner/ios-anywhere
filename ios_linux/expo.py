@@ -443,16 +443,34 @@ def prepare_glog(config, project, build, job):
     if header.is_file():
         text = header.read_text()
         if any(f"#define {name} 1" not in text for name in ("HAVE_PTHREAD", "HAVE_PREAD")):
+            patched = text
+            for name in ("HAVE_PTHREAD", "HAVE_PREAD"):
+                if f"#define {name} 1" in text:
+                    continue
+                pattern = rf"(?m)^(?:/\* #undef {name} \*/|#define {name} 0)$"
+                patched, count = re.subn(pattern, f"#define {name} 1", patched)
+                if count != 1:
+                    raise ValueError(f"Unrecognized glog configuration for {name}; refusing to guess.")
+            # CocoaPods may prune configure. Link the actual iOS APIs before repairing its cached results.
+            probe = build / "glog-ios-probe.c"
+            probe.write_text("""#include <pthread.h>
+#include <unistd.h>
+static void *worker(void *arg) { return arg; }
+int main(void) {
+    pthread_t thread;
+    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+    char byte;
+    int result = pthread_mutex_lock(&mutex);
+    result += pthread_create(&thread, 0, worker, 0);
+    result += pthread_join(thread, 0);
+    result += pthread_mutex_unlock(&mutex);
+    return result + (int)pread(0, &byte, 1, 0);
+}
+""")
+            run([SCRIPTS / "bin/clang", probe, "-o", build / "glog-ios-probe"],
+                build, job / "glog-probe.log", tool_env(config, project, build))
             unlock_cached_pod(project, "glog")
-            # Older cached probes failed at dsymutil, falsely disabling available iOS APIs.
-            marker = "/* Add in so we have Apple Target Conditionals */"
-            suffix = text[text.index(marker):] if marker in text else ""
-            env = dict(tool_env(config, project, build), CC="clang", CXX="clang++", CFLAGS="-O2 -g0", CXXFLAGS="-O2 -g0")
-            run(["./configure", "--host=arm-apple-darwin"], pods / "glog", job / "glog-configure.log", env)
-            configured = header.read_text()
-            if any(f"#define {name} 1" not in configured for name in ("HAVE_PTHREAD", "HAVE_PREAD")):
-                raise ValueError("glog could not detect iOS pthread/pread support; see glog-configure.log and glog/config.log.")
-            header.write_text(configured + "\n" + suffix)
+            header.write_text(patched)
     # glog includes log_severity.h inside namespace google; implicit submodule imports are invalid there.
     for modulemap in (pods / "Target Support Files/glog").glob("*.modulemap"):
         text = modulemap.read_text()
