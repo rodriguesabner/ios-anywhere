@@ -185,6 +185,8 @@ The CLI builds an isolated copy and publishes the IPA only after signing and ver
 
 In the menu, choose **Install an IPA on iPhone**, select the IPA, then choose your saved device by name. The CLI checks that its UDID is included in every embedded app/extension profile. Keep the iPhone connected, unlocked and paired.
 
+Preserve the exact capitalization printed by `idevice_id -l`. If an older version saved your device in uppercase, enter and save it again using the identifier printed by that command; the local entry is replaced without registering anything with Apple.
+
 For an explicit command, replace the UDID and IPA path below. For Godot, use your game folder and `godot.json` instead of `expo.json`:
 
 ```sh

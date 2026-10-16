@@ -13,7 +13,8 @@ import tempfile
 def validate_udid(value):
     if not isinstance(value, str) or not re.fullmatch(r'(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{16}|[0-9a-fA-F]{40})', value):
         raise ValueError('Enter an iPhone UDID: 8-16 hexadecimal digits or 40 hexadecimal digits.')
-    return value.upper()
+    # libusbmuxd matches device identifiers case-sensitively.
+    return value
 
 
 def store_path():
@@ -39,7 +40,7 @@ def save(name, udid):
     udid = validate_udid(udid)
     if not name.strip():
         raise ValueError('Enter a device name.')
-    entries = [d for d in load() if d['udid'] != udid]
+    entries = [d for d in load() if d['udid'].upper() != udid.upper()]
     entries.append({'name': name.strip(), 'udid': udid})
     path = store_path()
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)

@@ -11,7 +11,7 @@ import zipfile
 from ios_linux import cli, devices, provisioning, interactive
 from ios_linux.config import Config
 
-UDID = '00008000-0000000000000001'
+UDID = '000080AB-00000000000000CD'
 
 
 class DeviceTests(unittest.TestCase):
@@ -33,7 +33,24 @@ class DeviceTests(unittest.TestCase):
         for invalid in ('', 'serial-number', '../x', None):
             with self.assertRaises(ValueError):
                 devices.validate_udid(invalid)
-        self.assertEqual(devices.validate_udid('a' * 40), 'A' * 40)
+        self.assertEqual(devices.validate_udid('a' * 40), 'a' * 40)
+
+    def test_case_insensitive_identity_preserves_latest_spelling(self):
+        with tempfile.TemporaryDirectory() as temp, patch.dict(os.environ, {'XDG_CONFIG_HOME': temp}):
+            devices.save('Old', 'A' * 40)
+            devices.save('Current', 'a' * 40)
+            self.assertEqual(devices.load(), [{'name': 'Current', 'udid': 'a' * 40}])
+
+    def test_install_passes_discovered_udid_without_changing_case(self):
+        with tempfile.TemporaryDirectory() as temp:
+            ipa = Path(temp) / 'app.ipa'
+            ipa.touch()
+            with patch.object(Config, 'load', return_value=Config(Path('/tools'), Path('/cache'))), \
+                 patch.object(cli.shutil, 'which', return_value='/installer'), \
+                 patch.object(devices, 'check_ipa'), \
+                 patch.object(cli.subprocess, 'run') as run:
+                cli.execute(['install', str(ipa), '--udid', 'abCd1234-' + 'aB' * 8])
+                self.assertEqual(run.call_args.args[0][2], 'abCd1234-' + 'aB' * 8)
 
     def test_all_extension_profiles_must_include_device(self):
         with tempfile.TemporaryDirectory() as temp:

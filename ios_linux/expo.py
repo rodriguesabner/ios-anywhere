@@ -494,11 +494,13 @@ int main(void) {
                 build, job / "glog-probe.log", tool_env(config, project, build))
             unlock_cached_pod(project, "glog")
             header.write_text(patched)
-    # glog includes log_severity.h inside namespace google; implicit submodule imports are invalid there.
+    # Keep a compiled header so @import glog exports declarations, but no inferred
+    # submodules: log_severity.h is included inside namespace google.
+    # Also repair maps made textual by earlier versions.
     for modulemap in (pods / "Target Support Files/glog").glob("*.modulemap"):
         text = modulemap.read_text()
-        patched = text.replace("umbrella header", "textual header")
-        if "textual header" in patched:
+        patched = re.sub(r'(?:umbrella|textual)\s+header(\s+"glog-umbrella\.h")', r'header\1', text)
+        if 'header "glog-umbrella.h"' in patched:
             patched = re.sub(r"module\s+\*\s*\{\s*export\s+\*\s*\}", "", patched)
         if patched != text:
             modulemap.write_text(patched)
