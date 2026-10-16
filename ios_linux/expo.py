@@ -97,6 +97,23 @@ def tools_ruby(config):
     return config.toolchain / "ruby/usr/bin/ruby3.2"
 
 
+def patch_glog_configure(project):
+    path = project / "node_modules/react-native/scripts/ios-configure-glog.sh"
+    if not path.is_file():
+        return
+    text = path.read_text()
+    # React Native's no-xcrun fallback produces a literal ':-/usr/bin/gcc'.
+    replacements = {
+        'export CC="$CC:-$(which gcc)"': 'export CC="clang"',
+        'export CXX="$CXX:-$(which g++ || true)"': 'export CXX="clang++"',
+        'export CXX="$CXX:-$CC"': 'export CXX="${CXX:-$CC}"',
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    if text != path.read_text():
+        path.write_text(text)
+
+
 def prepare(config, source):
     job = build_directory(config, source)
     project, build = job / "project", job / "build"
@@ -190,6 +207,7 @@ def prepare(config, source):
     )
 
     podfile.write_text(text)
+    patch_glog_configure(project)
 
     run(
         [tools_ruby(config), config.toolchain / "gems/bin/pod", "install"],
