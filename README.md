@@ -87,13 +87,15 @@ ios-anywhere --engine expo doctor
 
 `doctor` checks prerequisites without installing anything. `--config /path/to/config.json` selects a specific installation. Existing configurations remain supported; see [configuration details](docs/installation.md#configuration-compatibility).
 
-**Validation:** guided setup has automated tests and a native link check using existing prepared components. A complete setup and signed IPA from a blank machine have **not yet been validated**.
+**Validation:** on October 16, 2026, a user completed setup on another PC, built and verified Godot’s [Truck Town demo](https://github.com/godotengine/godot-demo-projects/tree/master/3d/truck_town), installed it on an iPhone, and confirmed it ran. That run required manually installing the USB utilities; setup now includes them. The revised package installation has automated coverage but has not yet been rerun on that PC. This is one successful Godot project, not universal compatibility.
 
 ### 3. Add your signing credentials and build
 
 Prepare your certificate and provisioning profile using the [signing guide](docs/signing.md), then follow the [Godot](#godot) or [Expo](#expo) build command below. Setup does not need credentials; signing an IPA does. Installation on a device and submission to Apple are separate steps.
 
 ## Signing setup and device preparation
+
+For **Godot without an Expo project**, follow [Create your own App ID and Ad Hoc profile](docs/signing.md#godot-create-a-profile-for-your-own-bundle-id), including the adapted provisioning script used during development. `eas credentials` must run inside an EAS-configured Expo project, not this repository or a Godot folder.
 
 ### Download existing EAS credentials
 

@@ -55,6 +55,18 @@ class SetupTests(unittest.TestCase):
         self.assertFalse(self.tools.exists())
         self.assertFalse(self.config.exists())
 
+    def test_setup_installs_missing_device_tools(self):
+        device_tools = {"ideviceinstaller", "idevicepair", "usbmuxd"}
+        with patch.object(setup, "check_space"), \
+             patch.object(setup.shutil, "which", side_effect=lambda name: None if name in device_tools else "/usr/bin/" + name), \
+             patch.object(setup, "run", side_effect=[None, RuntimeError("stop after apt")]) as run:
+            with self.assertRaisesRegex(RuntimeError, "stop after apt"):
+                setup.setup(self.args())
+        command = run.call_args.args[0]
+        for package in ("ideviceinstaller", "libimobiledevice-utils", "usbmuxd"):
+            self.assertIn(package, command)
+        self.assertIn("install", command)
+
     def test_download_cache_and_corrupt_download(self):
         data = b"verified release"
         digest = hashlib.sha256(data).hexdigest()

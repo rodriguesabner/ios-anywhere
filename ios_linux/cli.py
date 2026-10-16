@@ -5,6 +5,7 @@ import fcntl
 from pathlib import Path
 import os
 import subprocess
+import shutil
 import sys
 from . import __version__
 from .config import Config, SCRIPTS
@@ -84,6 +85,13 @@ def execute(argv=None):
     if args.command == "install":
         if not args.ipa.is_file():
             raise ValueError("IPA not found.")
+
+        if not shutil.which(config.installer):
+            raise ValueError(
+                f"iPhone installer not found: {config.installer}. "
+                "On Ubuntu/Debian run: sudo apt-get install ideviceinstaller libimobiledevice-utils usbmuxd. "
+                "Then connect and unlock the iPhone and run idevicepair pair."
+            )
 
         env = dict(os.environ)
 

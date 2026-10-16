@@ -227,7 +227,7 @@ def setup(args):
     check_space(tools.parent)
     print(f"Toolchain: {tools}\nConfiguration: {config_path}\nDownloads are cached beside the toolchain and verified against pinned SHA-256 hashes.")
     confirm("Install Godot tools and the selected SDK?", args.yes)
-    packages = {"clang-18": "clang-18", "curl": "curl", "git": "git", "node": "nodejs", "npm": "npm", "openssl": "openssl"}
+    packages = {"clang-18": "clang-18", "curl": "curl", "git": "git", "node": "nodejs", "npm": "npm", "openssl": "openssl", "ideviceinstaller": "ideviceinstaller", "idevicepair": "libimobiledevice-utils", "usbmuxd": "usbmuxd"}
     missing = [package for command, package in packages.items() if not shutil.which(command)]
     if missing:
         if not shutil.which("apt-get"):

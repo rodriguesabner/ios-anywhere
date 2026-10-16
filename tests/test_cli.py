@@ -40,6 +40,17 @@ class CliTests(unittest.TestCase):
             p.write_text('{"toolchain":"tools","cache":"cache"}')
             self.assertEqual(Config.load(p).toolchain, Path(temp) / "tools")
 
+    def test_install_missing_tool_explains_recovery(self):
+        with tempfile.TemporaryDirectory() as temp:
+            ipa = Path(temp) / "app.ipa"
+            ipa.touch()
+            with patch.object(Config, "load", return_value=Config(Path("/tools"), Path("/cache"))), \
+                 patch.object(cli.shutil, "which", return_value=None), \
+                 patch.object(cli.subprocess, "run") as run:
+                with self.assertRaisesRegex(ValueError, "sudo apt-get install ideviceinstaller"):
+                    cli.execute(["install", str(ipa), "--udid", "test-device"])
+                run.assert_not_called()
+
     def test_output_protection(self):
         with tempfile.TemporaryDirectory() as temp:
             p = Path(temp) / "app.ipa"

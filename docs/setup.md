@@ -11,7 +11,7 @@ The current assistant prepares **Godot 4.5.1 on Linux x86_64**, using system Cla
 ## What happens
 
 1. Choose a local SDK folder or the unofficial mirror described below.
-2. Review destination paths and approve downloads. Missing system commands can be installed with apt; non-root users need sudo. Other distributions must provide the listed packages themselves.
+2. Review destination paths and approve downloads. Missing system commands, including `ideviceinstaller`, `libimobiledevice-utils` and `usbmuxd` for iPhone installation, can be installed with apt; non-root users need sudo. Other distributions must provide the listed packages themselves.
 3. Download and verify the linker, Godot editor, and export templates. Install only the release arm64 device libraries from the templates.
 4. Import/download the SDK and install zsign-wasm 0.0.4 through npm, with lifecycle scripts disabled.
 5. Run the editor, compile C/C++ support, link a native Godot executable, and load the signer. Publish the toolchain and config only after these checks pass.
@@ -68,3 +68,15 @@ After success, you may delete that download cache while no setup is running. Kee
 The setup flow has automated tests for checksum failures, download reuse, low disk space, SDK validation, preservation of existing paths, and publishing only after a successful native check. On October 16, 2026, all 34 repository tests passed; the official Godot template's device-library paths were inspected directly, and the pinned linker archive was downloaded, checksum-verified, and extracted. The native check passed with system Clang 18 and the existing prepared SDK/Godot libraries; the signer also loaded successfully.
 
 End-to-end installation and a signed IPA from a blank machine are **not yet validated**. The local disk had approximately 2.3 GiB free, below the setup threshold. The setup is experimental; report failures with the step and tool versions, without sharing credentials.
+
+## Existing installations missing USB utilities
+
+Do not rerun setup into an existing toolchain. Install the missing packages, then pair the unlocked iPhone:
+
+```sh
+sudo apt-get update
+sudo apt-get install -y ideviceinstaller libimobiledevice-utils usbmuxd
+idevicepair pair
+```
+
+No rebuild is needed for an already signed IPA.

@@ -125,7 +125,7 @@ ios-anywhere --engine godot doctor
 
 `doctor` checks required paths and commands; it does not install missing tools, download SDKs, or prove a successful build. Use `--config /path/to/config.json` to select another configuration. Activate the virtual environment or use `.venv/bin/ios-anywhere` directly.
 
-**Validation scope:** a fresh checkout and virtual environment on an existing Debian 13.6 x86_64 host passed CLI installation and all 13 unit tests on October 16, 2026; that host already had Python, Node/npm, and OpenSSL. This did not install the external toolchain or build an IPA. The Ubuntu package examples and full toolchain bootstrap above have not been validated end to end on a blank machine. See [device/build validation](validation.md) for the separately tested prepared environment.
+**Validation scope:** a fresh checkout and virtual environment on an existing Debian 13.6 x86_64 host passed CLI installation and all 13 unit tests on October 16, 2026; that host already had Python, Node/npm, and OpenSSL. This did not install the external toolchain or build an IPA. A later user-run Godot build and device test on another PC succeeded after manually installing the USB utilities; see the dated second-PC test below. The updated automatic USB package installation has not yet been rerun there. See [device/build validation](validation.md) for the separately tested prepared environment.
 
 If you already have an App Store IPA and only want to upload it, skip local compiler/toolchain setup and follow [Submit to Apple](../README.md#submit-to-apple).
 

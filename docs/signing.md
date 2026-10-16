@@ -4,6 +4,68 @@
 
 Use the format in [credentials.example.json](../credentials.example.json). Certificate and profile paths can be absolute or relative to the credentials file. For direct device installation, the profile must match the app identity and include the device. Supply your certificate, password, and profile; the CLI does not sign in to Apple or create profiles automatically.
 
+### Godot: create a profile for your own bundle ID
+
+A Godot directory is not an EAS project. Running `eas credentials` there, or in this CLI's repository, fails. You do not need an Expo app to create Apple credentials: use [Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/) with your Apple Developer team.
+
+1. Register an explicit App ID such as `com.example.truck` under Identifiers.
+2. Register the iPhone's UDID under Devices (obtain it with `idevice_id -l`).
+3. Under Profiles, create an **Ad Hoc** profile, select that App ID, your Apple Distribution certificate, and your iPhone, then download it as `app.mobileprovision`.
+4. Use the corresponding certificate **and its private key** in a `.p12`, plus its password. A downloaded `.cer` alone is insufficient. An existing EAS-managed distribution certificate can be downloaded from its Expo project's credentials manager and reused for another app in the same Apple team.
+
+The bundle ID passed to `build` must match the profile exactly. Changing `--bundle-id` does not register a new app or update a profile. The shared test ID used during development is not required by ios-anywhere; use your own ID and profile. Reusing an installed app's ID updates/replaces that app.
+
+#### Commands used during development
+
+The original flow was a local Node script using `@expo/apple-utils` after Apple authentication through EAS. It restored the cached Apple session, selected an existing certificate and registered device, created the App ID if missing, and created an Ad Hoc profile. It did **not** create the certificate/private key or register the phone. The original invocation was `node provision-local.cjs`; that private script contained machine-specific paths and account identifiers.
+
+A portable adaptation is now included at [examples/signing/create-adhoc-profile.cjs](../examples/signing/create-adhoc-profile.cjs). Unlike the original script's named-profile reuse, it creates a fresh profile containing the selected device on each run. It never revokes a certificate or overwrites an existing output file. **Running it creates resources in your Apple account.** It is an advanced example using an unofficial library, not a supported Apple CLI or an automatic login flow.
+
+From the ios-anywhere repository root:
+
+```sh
+# Keep dependencies and credentials outside the repository.
+mkdir -p "$HOME/.local/share/ios-anywhere/apple-profile-helper" "$HOME/private-signing/truck"
+npm install --prefix "$HOME/.local/share/ios-anywhere/apple-profile-helper" --ignore-scripts @expo/apple-utils@2.2.1
+
+export APPLE_ID="your-apple-account@example.com"
+export APPLE_TEAM_ID="YOUR_TEAM_ID"
+export APPLE_CERTIFICATE_ID="YOUR_EXISTING_DISTRIBUTION_CERTIFICATE_ID"
+export DEVICE_UDID="YOUR_REGISTERED_IPHONE_UDID"
+export BUNDLE_ID="com.example.truck"
+export PROFILE_OUTPUT="$HOME/private-signing/truck/app.mobileprovision"
+
+NODE_PATH="$HOME/.local/share/ios-anywhere/apple-profile-helper/node_modules" \
+  node examples/signing/create-adhoc-profile.cjs
+```
+
+`APPLE_CERTIFICATE_ID` is the existing certificate's Apple resource ID, not its serial number or the `.p12` filename. The `.p12` must belong to that certificate. This helper requires a valid cached **Apple** session for that account/team; `npx eas-cli login` only logs in to Expo. If the session is unavailable, use the portal procedure above, or authenticate with Apple using `npx eas-cli credentials --platform ios` **inside an existing EAS-configured Expo project**. There is no need to create an Expo project just for Godot. Never share cached sessions.
+
+Copy your corresponding `.p12` into the same private folder as `distribution.p12`, then create `credentials.json` there using this structure (replace the password locally):
+
+```json
+{
+  "ios": {
+    "provisioningProfilePath": "app.mobileprovision",
+    "distributionCertificate": {
+      "path": "distribution.p12",
+      "password": "YOUR_P12_PASSWORD"
+    }
+  }
+}
+```
+
+```sh
+chmod 600 "$HOME/private-signing/truck/"*
+ios-anywhere --engine godot \
+  --project "$HOME/truck_town" \
+  --bundle-id "$BUNDLE_ID" \
+  --credentials "$HOME/private-signing/truck/credentials.json" \
+  build --output "$HOME/truck_town/truck.ipa"
+```
+
+These commands explain the earlier hidden preparation step. The portable adaptation has local checks; it has not been used to create a new profile as part of this documentation update.
+
 ### Get the Apple signing files from EAS
 
 The certificate used by an Expo app is an **Apple distribution certificate**. For this CLI you need its `.p12` file (including the private key), its password, and the matching `.mobileprovision` file. A push-notification key or App Store Connect API key is not a replacement for these signing files. Creating credentials requires the appropriate Apple Developer Program membership and team permissions; EAS can manage them for you. See [Expo's managed credentials guide](https://docs.expo.dev/app-signing/managed-credentials/).

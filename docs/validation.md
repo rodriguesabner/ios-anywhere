@@ -1,6 +1,6 @@
 # Validation
 
-Manual build and device checks below were performed on 2026-10-15, Linux x86_64.
+Initial manual build and device checks were performed on 2026-10-15, Linux x86_64. Later checks are dated separately.
 
 ## Automated checks and badge scope
 
@@ -58,3 +58,9 @@ See the [submission commands and requirements](../README.md#submit-to-apple).
 On 2026-10-15, Expo-Demo-04 was compiled through the installed CLI, signed with the app's Apple distribution credentials, verified, and installed on the connected iPhone (InstallComplete 100%). The user opened the sample and incremented the counter to 17, visible in the final capture.
 
 The 3 min 41 sec recording is continuous, with no pauses or cuts. Credential acquisition is explained rather than executed; the build and installation are real. The website copy has no audio. This device test does not validate App Store processing or arbitrary native dependencies.
+
+## Second-PC Godot test — 2026-10-16
+
+The user ran guided setup on another PC and built the upstream [Truck Town demo](https://github.com/godotengine/godot-demo-projects/tree/master/3d/truck_town). The CLI reported a signed and verified IPA; installation reached `InstallComplete (100%)`, and the user supplied a screenshot of the running game. The exact demo commit and host distribution were not recorded.
+
+The first install attempt exposed missing USB dependencies. Installing `ideviceinstaller`, `libimobiledevice-utils`, and `usbmuxd` resolved it. Setup now includes those packages, with a regression test; the updated setup itself has not been rerun end to end on that host. Signing used an existing distribution certificate and an Ad Hoc profile containing the device, with the exact bundle ID authorized by that profile.
