@@ -40,7 +40,7 @@ This is an external submission service, not a local compiler or proof of Apple a
 - ios_linux/scripts/: compiler helpers, graph export, and verifier.
 - tests/: SDK-free unit tests.
 
-The ios-linux command alias, ios_linux Python module, IOS_LINUX_* environment variables, and existing configuration paths remain part of compatibility. Do not rename these incidentally.
+The canonical config is ios-anywhere/config.json under XDG_CONFIG_HOME (or ~/.config). Fall back to ios-linux/config.json only when the canonical file is absent; explicit --config wins. Never migrate or overwrite existing files automatically. Toolchain/cache paths remain values from the selected config. The ios-linux command alias, ios_linux Python module, and IOS_LINUX_* variables remain supported.
 
 ## Operational rules
 
