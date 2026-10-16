@@ -177,7 +177,6 @@ See [Validation](docs/validation.md) for real-world checks and [Architecture](do
 - [Architecture and project isolation](docs/architecture.md)
 - [Validation and device tests](docs/validation.md)
 - [Third-party components](THIRD_PARTY.md)
-- [Website creation prompt](docs/website-prompt.md)
 - [AI agent guide](llm.txt)
 
 ## Disclaimer
