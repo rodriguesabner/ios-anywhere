@@ -10,7 +10,12 @@
 ![Host: Linux x86_64](https://img.shields.io/badge/host-Linux_x86__64-20252b)
 ![Python: 3.11+](https://img.shields.io/badge/python-3.11%2B-3776ab)
 
-[Website](https://rodriguesabner.github.io/ios-anywhere/) · [Quick start](#installation) · [Expo](#expo) · [Godot](#godot) · [Compatibility](#compatibility) · [Submit to Apple](#submit-to-apple) · [Documentation](#documentation)
+[![Unit tests (live CI on main)](https://github.com/rodriguesabner/ios-anywhere/actions/workflows/tests.yml/badge.svg?branch=main&event=push)](https://github.com/rodriguesabner/ios-anywhere/actions/workflows/tests.yml?query=branch%3Amain)
+[![Expo device: documented manual test](https://img.shields.io/badge/Expo_device-documented_manual_test-007ec6)](docs/validation.md#device-tests)
+[![Godot device: documented manual test](https://img.shields.io/badge/Godot_device-documented_manual_test-007ec6)](docs/validation.md#device-tests)
+[![Apple upload: documented manual test](https://img.shields.io/badge/Apple_upload-documented_manual_test-007ec6)](docs/validation.md#apple-upload-example-cs-callouts)
+
+[Website](https://rodriguesabner.github.io/ios-anywhere/) · [Quick start](#installation) · [Expo](#expo) · [Godot](#godot) · [Compatibility](#compatibility) · [Validation status](#validation-status) · [Signing setup](#signing-verification-and-installation) · [Submit to Apple](#submit-to-apple) · [Documentation](#documentation)
 
 </div>
 
@@ -24,48 +29,43 @@ Each build receives an explicit project, its own credentials, and an output path
 Expo / Godot project → local compilation → signing → IPA → iPhone
 ```
 
-## Compatibility
-
-| Workflow | Current status |
-| --- | --- |
-| Expo | SDK 54 examples built and tested on iPhone; native dependencies may need adaptation. |
-| Godot | GDScript with engine 4.5.1; examples built and tested on iPhone. |
-| Signing | Valid certificate and provisioning profile supplied by the user. |
-| Widgets and extensions | Not supported by the generic CLI workflow yet. |
-| App Store | Upload tested with CS Callouts; Apple processing and approval remain unverified. Precompiled assets are still required. |
-| Host systems | Linux x86_64 validated. Windows and macOS have not been validated. |
-
-See [Validation](docs/validation.md) for evidence and test scope.
-
-## Demo
-
-[![Expo build and installation on a real iPhone](docs/assets/expo-build-install-poster.jpg)](docs/assets/expo-build-install-demo.mp4)
-
-[Watch the continuous demonstration](docs/assets/expo-build-install-demo.mp4): local Expo build, signing verification, installation, and the app running on an iPhone. Recorded October 15, 2026; 3 min 41 sec, without pauses or cuts. Credential setup is explained; existing credentials are used. Audio was removed for sharing. The sample app interface is in Portuguese; CLI output is in English.
-
-The [website source](docs/index.html) includes an embedded player, commands, compatibility notes, and documentation links.
-
 ## Installation
 
-Requires Python 3.11+, Node/npm, OpenSSL, and Pillow. Install from this repository:
+### 1. Install the CLI
 
 ```sh
+# Ubuntu 24.04 / Linux x86_64
+sudo apt-get update
+sudo apt-get install -y git python3 python3-venv python3-pip openssl curl unzip
+
 git clone https://github.com/rodriguesabner/ios-anywhere.git
 cd ios-anywhere
 python3 -m venv .venv
-.venv/bin/pip install .
 . .venv/bin/activate
+python -m pip install .
 ios-anywhere --version
 ```
 
-Prepare the [external toolchain](docs/toolchain.md), copy `config.example.json` to `~/.config/ios-linux/config.json`, and adjust the paths. **Installing the Python package does not install compilers, SDKs, or Apple credentials.**
+Requires Python 3.11+. Install Node.js/npm compatible with your Expo project before building.
+
+### 2. Configure and check
+
+**An external iOS toolchain is required.** The commands above install the CLI only. If you do not already have the compiler, SDKs, and backend tools, complete the [toolchain installation guide](docs/installation.md#2-prepare-the-external-toolchain) first.
 
 ```sh
-ios-anywhere doctor
-ios-anywhere --engine godot doctor
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ios-linux"
+mkdir -p "$CONFIG_DIR"
+if [ ! -e "$CONFIG_DIR/config.json" ]; then
+  cp config.example.json "$CONFIG_DIR/config.json"
+fi
+
+# Edit config.json: set toolchain to your prepared toolchain directory.
+# Then check the backend you will use:
+ios-anywhere --engine expo doctor
+# Or: ios-anywhere --engine godot doctor
 ```
 
-Use `--config /path/to/config.json` to select another configuration. Activate the virtual environment or use `.venv/bin/ios-anywhere` directly.
+`doctor` checks prerequisites; it does not install them. Full setup instructions and tested scope are in [Installation details](docs/installation.md).
 
 ## Expo
 
@@ -92,20 +92,39 @@ The source directory must contain `project.godot`. The backend exports a fresh P
 
 ## Signing, verification, and installation
 
-Use the format in [credentials.example.json](credentials.example.json). Certificate and profile paths can be absolute or relative to the credentials file. For direct device installation, the profile must match the app identity and include the device. Supply your certificate, password, and profile; the CLI does not sign in to Apple or create profiles automatically.
+### Download existing EAS credentials
+
+Run in your app's EAS-configured project:
 
 ```sh
-ios-anywhere verify /path/to/MyApp-01.ipa
-ios-anywhere install /path/to/MyApp-01.ipa --udid YOUR_UDID
+npx eas-cli login
+npx eas-cli credentials --platform ios
 ```
 
-`verify` checks code and resource hashes, the CMS signature, and profile correspondence. It does not check Apple's trust or revocation status, establish App Store compatibility, or prove runtime behavior. `IOS_LINUX_UDID` can restrict verification to the intended device.
+Select your build profile, then the credentials JSON download option. Keep the `.p12`, password, profile, and JSON outside the repository; use `--credentials /private/credentials.json` when building. Never commit them.
 
-`build` writes the final IPA only after signing and verification. Existing output files are rejected. Installation is separate. `bundle` prepares resources without signing. Global options (`--project`, `--credentials`, `--engine`, `--config`) precede the subcommand.
+### Get the iPhone UDID
+
+```sh
+# Ubuntu; connect and unlock the iPhone, then accept its trust prompt
+sudo apt-get install libimobiledevice-utils usbmuxd ideviceinstaller
+idevice_id -l
+
+UDID="YOUR_DEVICE_UDID"
+idevicepair -u "$UDID" pair
+idevicepair -u "$UDID" validate
+```
+
+### Verify and install
+
+**Use an Ad Hoc profile that includes this UDID, not an App Store profile.** If needed, register the device and refresh/download the profile before building; the [signing guide](docs/signing.md) covers those steps and new credentials.
+
+```sh
+IOS_LINUX_UDID="$UDID" ios-anywhere verify /path/to/MyApp-01.ipa
+ios-anywhere install /path/to/MyApp-01.ipa --udid "$UDID"
+```
 
 ## Submit to Apple
-
-**Upload has been tested:** the CS Callouts experiment sent an IPA with a Linux-built executable to Apple, using an asset catalog reused from an EAS build of the same app. See the [documented upload result](docs/validation.md#apple-upload-example-cs-callouts). Apple processing, TestFlight availability, App Review, and publication have not been verified by that result.
 
 Upload an existing production IPA through **EAS Submit**, from your app's EAS-configured project directory:
 
@@ -132,7 +151,38 @@ Use an App Store distribution certificate/profile and a new build number for tha
 
 This uses Expo's submission service, not EAS Build. The CLI has no built-in `submit` command. Uploading sends the binary to App Store Connect; Apple processing, TestFlight availability, and submission for App Review are separate steps. Asset catalogs and current Apple requirements must still be satisfied.
 
+**Upload has been tested:** the CS Callouts experiment sent an IPA with a Linux-built executable to Apple, using an asset catalog reused from an EAS build of the same app. See the [documented upload result](docs/validation.md#apple-upload-example-cs-callouts). Apple processing, TestFlight availability, App Review, and publication have not been verified by that result.
+
 Sources: [EAS Submit for iOS](https://docs.expo.dev/submit/ios/), [submitting an existing IPA](https://docs.expo.dev/deploy/submit-to-app-stores/).
+
+## Compatibility
+
+| Workflow | Current status |
+| --- | --- |
+| Expo | SDK 54 examples built and tested on iPhone; native dependencies may need adaptation. |
+| Godot | GDScript with engine 4.5.1; examples built and tested on iPhone. |
+| Signing | Valid certificate and provisioning profile supplied by the user. |
+| Widgets and extensions | Not supported by the generic CLI workflow yet. |
+| App Store | Upload tested with CS Callouts; Apple processing and approval remain unverified. Precompiled assets are still required. |
+| Host systems | Linux x86_64 validated. Windows and macOS have not been validated. |
+
+See [Validation](docs/validation.md) for evidence and test scope.
+
+## Validation status
+
+- **Unit tests (live CI):** the badge reports the latest push run on `main` of the [SDK-free test workflow](.github/workflows/tests.yml). It installs the Python package, runs the unit suite, and checks Python compilation on Linux. It does not build or sign an IPA. Until the workflow has run on `main`, there is no CI pass to claim.
+- **Expo and Godot (documented manual tests):** minimal Expo SDK 54 and Godot 4.5.1 examples were built, signed, installed, and opened on an iPhone on October 15, 2026. These static badges link to [the recorded scope](docs/validation.md#device-tests); they do not automatically revalidate later commits or other apps.
+- **Apple upload (documented manual test):** CS Callouts was uploaded with a Linux-built executable and `Assets.car` reused from an EAS build of the same app. [This evidence](docs/validation.md#apple-upload-example-cs-callouts) covers upload only; Apple processing, TestFlight, App Review, and publication remain unverified.
+
+These indicators describe separate checks, not a percentage of completion or a guarantee of App Store readiness.
+
+## Demo
+
+[![Expo build and installation on a real iPhone](docs/assets/expo-build-install-poster.jpg)](docs/assets/expo-build-install-demo.mp4)
+
+[Watch the continuous demonstration](docs/assets/expo-build-install-demo.mp4): local Expo build, signing verification, installation, and the app running on an iPhone. Recorded October 15, 2026; 3 min 41 sec, without pauses or cuts. Credential setup is explained; existing credentials are used. Audio was removed for sharing. The sample app interface is in Portuguese; CLI output is in English.
+
+The [website source](docs/index.html) includes an embedded player, commands, compatibility notes, and documentation links.
 
 ## Project layout
 
@@ -157,8 +207,11 @@ No project is selected implicitly. Builds do not depend on the working directory
 
 ## Development
 
+Install the package first (`python3 -m pip install .`) and ensure Node.js is on PATH; the Expo module-resolution test invokes Node. Then run the same SDK-free checks as CI:
+
 ```sh
 python3 -m unittest discover -s tests -v
+python3 -m compileall -q ios_linux tests
 ```
 
 See [Validation](docs/validation.md) for real-world checks and [Architecture](docs/architecture.md) for boundaries between source, tools, and builds.
@@ -175,6 +228,8 @@ See [Validation](docs/validation.md) for real-world checks and [Architecture](do
 
 ## Documentation
 
+- [Installation details](docs/installation.md)
+- [Signing credentials and device setup](docs/signing.md)
 - [Toolchain setup](docs/toolchain.md)
 - [Architecture and project isolation](docs/architecture.md)
 - [Validation and device tests](docs/validation.md)

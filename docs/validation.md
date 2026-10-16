@@ -1,6 +1,20 @@
 # Validation
 
-Performed on 2026-10-15, Linux x86_64.
+Manual build and device checks below were performed on 2026-10-15, Linux x86_64.
+
+## Automated checks and badge scope
+
+The [Unit tests workflow](../.github/workflows/tests.yml) installs the Python package on Ubuntu with Python 3.11 and Node.js 22, then runs:
+
+```sh
+python -m pip install .
+python -m unittest discover -s tests -v
+python -m compileall -q ios_linux tests
+```
+
+Node.js is needed by the Expo module-resolution test. The workflow needs no Apple SDK, certificate, provisioning profile, device, or repository secret. Its token has read-only repository-content access. It runs on pushes and pull requests; the README's live badge is limited to push runs on `main`. A missing or not-yet-run badge is not a successful result.
+
+A passing run covers the unit suite and Python compilation only, not an iOS build, signing, device execution, or Apple acceptance. The manual badges in the README are static links to the dated evidence below; they are not CI checks and do not establish that every later commit was tested on a device.
 
 ## Version 0.2 refactoring
 
