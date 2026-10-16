@@ -5,6 +5,7 @@ import os
 import plistlib
 import subprocess
 import sys
+import shutil
 
 
 tools = Path(os.environ['IOS_LINUX_TOOLCHAIN'])
@@ -86,6 +87,7 @@ for source in sorted(cpp.glob('*.cpp')):
 # Match Expo's dynamic framework: React/Hermes symbols resolve in the host process.
 framework = out / 'ExpoModulesJSI.framework'
 framework.mkdir(exist_ok=True)
+shutil.copytree(cpp / "include/Public", framework / "Headers", dirs_exist_ok=True)
 link = [
     str(tools / 'darwin-tools/bin/ld64.lld'), '-dylib', '-arch', 'arm64',
     '-platform_version', 'ios', '16.4', sdk_version, '-syslibroot', str(sdk),

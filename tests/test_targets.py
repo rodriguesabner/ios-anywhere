@@ -45,7 +45,8 @@ class TargetsTests(unittest.TestCase):
                 name = app['name']
                 path = job / 'project/ios' / name
                 path.mkdir(parents=True)
-                info = {'CFBundleIdentifier':'$(PRODUCT_BUNDLE_IDENTIFIER)', 'CFBundleVersion':'7'}
+                info = {'CFBundleIdentifier':'$(PRODUCT_BUNDLE_IDENTIFIER)', 'CFBundleVersion':'7',
+                        'NSBonjourServices': ['_$(RCT_METRO_PORT)._tcp']}
                 if name != 'App': info['NSExtension'] = {'NSExtensionPointIdentifier':'com.apple.widgetkit-extension'}
                 (path/'Info.plist').write_bytes(plistlib.dumps(info))
                 binary = job/'build/products'/name/name
@@ -76,6 +77,7 @@ class TargetsTests(unittest.TestCase):
                 info = plistlib.loads((ext/'Info.plist').read_bytes())
                 self.assertEqual(info['CFBundleIdentifier'], 'test.'+name)
                 self.assertEqual(info['CFBundlePackageType'], 'XPC!')
+                self.assertEqual(info['NSBonjourServices'], ['_8081._tcp'])
                 self.assertIn('NSExtension', info)
                 self.assertNotIn('UIApplicationSceneManifest', info)
                 self.assertNotIn('UILaunchScreen', info)
@@ -176,6 +178,11 @@ class TargetsTests(unittest.TestCase):
                             IOS_LINUX_BUILD=str(root),IOS_LINUX_PROJECT=str(root/'project')):
                 compiler=runpy.run_path(str(SCRIPTS/'compile-pods.py'))
                 command,_=compiler['command'](extension,{'path':str(root/'Widget.mm')})
+                objcxx,_=compiler['command'](extension,{'path':str(root/'Override.m'),
+                    'flags':{'COMPILER_FLAGS':'-x objective-c++ -std=c++20 -fno-objc-arc'}})
+            self.assertTrue(objcxx[0].endswith('clang++'))
+            self.assertLess(objcxx.index('-x'),objcxx.index(str(root/'Override.m')))
+            self.assertIn('-std=c++20',objcxx)
             self.assertIn('-fapplication-extension',command)
             self.assertEqual(command[command.index('-target')+1],'arm64-apple-ios18.0')
 

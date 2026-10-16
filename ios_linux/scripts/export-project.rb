@@ -4,6 +4,7 @@ require 'json'
 project = Xcodeproj::Project.open(ARGV.fetch(0))
 
 keys = %w[
+  RCT_METRO_PORT
   SWIFT_OBJC_INTEROP_MODE
   SWIFT_ACTIVE_COMPILATION_CONDITIONS
   MARKETING_VERSION

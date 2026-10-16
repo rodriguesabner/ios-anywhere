@@ -406,6 +406,8 @@ def bundle(config, job):
             env,
         )
 
+    bundle_widgets(config, job)
+
 
 def patch_splash(project):
     path = project / "node_modules/expo-splash-screen/ios/SplashScreenManager.swift"
@@ -757,6 +759,7 @@ def stage_target(job, app, libraries, dest):
         "PRODUCT_NAME": name,
         "EXECUTABLE_NAME": name,
         "DEVELOPMENT_LANGUAGE": "en",
+        "RCT_METRO_PORT": settings.get("RCT_METRO_PORT") or "8081",
         "MARKETING_VERSION": settings.get("MARKETING_VERSION") or "1.0",
         "CURRENT_PROJECT_VERSION": settings.get("CURRENT_PROJECT_VERSION") or "1",
     }
@@ -985,7 +988,6 @@ def build(config, source, output, credentials):
 
     job = prepare(config, source)
     bundle(config, job)
-    bundle_widgets(config, job)
     native(config, job)
     package(config, job, output, credentials)
 
