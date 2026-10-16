@@ -15,7 +15,7 @@
 [![Godot device: documented manual test](https://img.shields.io/badge/Godot_device-documented_manual_test-007ec6)](docs/validation.md#device-tests)
 [![Apple upload: documented manual test](https://img.shields.io/badge/Apple_upload-documented_manual_test-007ec6)](docs/validation.md#apple-upload-example-cs-callouts)
 
-[Website](https://rodriguesabner.github.io/ios-anywhere/) · [Quick start](#installation) · [Expo](#expo) · [Godot](#godot) · [Compatibility](#compatibility) · [Validation status](#validation-status) · [Signing setup](#signing-setup-and-device-preparation) · [Submit to Apple](#submit-to-apple) · [Documentation](#documentation)
+[Website](https://rodriguesabner.github.io/ios-anywhere/) · [Quick start](#installation) · [Guided setup](docs/setup.md) · [Expo](#expo) · [Godot](#godot) · [Compatibility](#compatibility) · [Validation status](#validation-status) · [Signing setup](#signing-setup-and-device-preparation) · [Submit to Apple](#submit-to-apple) · [Documentation](#documentation)
 
 </div>
 
@@ -26,10 +26,18 @@ An experimental CLI to compile, sign, and install iOS apps **locally on Linux**,
 Each build receives an explicit project, its own credentials, and an output path. Compilers, SDKs, and caches live outside this repository. No previous application is required as a template.
 
 ```text
-Expo / Godot project → local compilation → signing → IPA → iPhone
+Install CLI → prepare tools → build your project → signed IPA → iPhone
 ```
 
 ## Installation
+
+Choose your setup path:
+
+| Your project | Toolchain setup | Starting point |
+| --- | --- | --- |
+| Godot 4.5.1 / GDScript | Experimental guided installer | `ios-anywhere setup` |
+| Expo / React Native | Manual preparation | [Expo toolchain guide](docs/installation.md#2-prepare-the-external-toolchain) |
+| Already configured | Reuse your installation | `ios-anywhere --engine godot doctor` or `--engine expo doctor` |
 
 ### 1. Install the CLI
 
@@ -46,40 +54,44 @@ python -m pip install .
 ios-anywhere --version
 ```
 
-Requires Python 3.11+. Install Node.js/npm compatible with your Expo project before building.
+Requires Python 3.11+. This installs the CLI, not the compiler or SDKs. For guided setup, use Python 3.11.8+ or 3.12+. Expo users also need a compatible Node.js/npm installation.
 
-### 2. Configure and check
+### 2. Prepare your tools
 
-**An external iOS toolchain is required.** The commands above install the CLI only.
-
-For a **new Godot installation on Linux x86_64**, use the guided setup before creating a config:
+**Godot — guided setup.** On a new Linux x86_64 installation, run this before creating a configuration file:
 
 ```sh
 ios-anywhere setup
 ```
 
-It installs the Godot toolchain in stages, offers a local SDK import or an explicitly selected **unofficial SDK mirror**, and checks native linking before saving your config. Missing system packages can be installed through apt with your confirmation. It requires at least 8 GiB free and preserves existing installations. See [guided setup](docs/setup.md) for sources, checksums, unattended usage, and validation limits. **Expo setup remains manual.**
+The assistant walks through SDK selection and installs the compiler, linker, Godot libraries, and signer. It checks native linking before saving your configuration.
 
-If you already have a prepared toolchain, or use Expo, follow the configuration below and the [toolchain installation guide](docs/installation.md#2-prepare-the-external-toolchain).
+- **SDK source:** import a local iPhoneOS 18.5 SDK or explicitly choose the unofficial mirror at a pinned revision.
+- **Downloads:** release archives are checksum-verified; partial downloads can resume.
+- **Disk:** at least 8 GiB free before setup, plus space for system packages and builds.
+- **Existing installations:** preserved. Use `doctor` to check them; setup refuses to overwrite their paths.
+
+For unattended setup with the unofficial SDK mirror:
 
 ```sh
-CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ios-anywhere"
-mkdir -p "$CONFIG_DIR"
-LEGACY_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/ios-linux/config.json"
-if [ ! -e "$CONFIG_DIR/config.json" ] && [ ! -f "$LEGACY_CONFIG" ]; then
-  cp config.example.json "$CONFIG_DIR/config.json"
-fi
-
-# Edit the existing config, or the new $CONFIG_DIR/config.json.
-# Set toolchain to your prepared toolchain directory.
-# Then check the backend you will use:
-ios-anywhere --engine expo doctor
-# Or: ios-anywhere --engine godot doctor
+ios-anywhere setup --sdk-source mirror --yes
 ```
 
-`ios-anywhere/config.json` is preferred; an existing `ios-linux/config.json` remains a fallback. `--config` selects an explicit file. No files are moved or overwritten.
+`--yes` also approves installation of missing apt packages; sudo may be required. The mirror is not Apple-authenticated, and Apple SDK terms still apply. See [guided setup](docs/setup.md) for local SDK import, custom paths, sources, and cleanup.
 
-`doctor` checks prerequisites; it does not install them. Full setup instructions and tested scope are in [Installation details](docs/installation.md).
+**Expo — manual setup.** Follow the [toolchain installation guide](docs/installation.md#2-prepare-the-external-toolchain), configure its paths, then run:
+
+```sh
+ios-anywhere --engine expo doctor
+```
+
+`doctor` checks prerequisites without installing anything. `--config /path/to/config.json` selects a specific installation. Existing configurations remain supported; see [configuration details](docs/installation.md#configuration-compatibility).
+
+**Validation:** guided setup has automated tests and a native link check using existing prepared components. A complete setup and signed IPA from a blank machine have **not yet been validated**.
+
+### 3. Add your signing credentials and build
+
+Prepare your certificate and provisioning profile using the [signing guide](docs/signing.md), then follow the [Godot](#godot) or [Expo](#expo) build command below. Setup does not need credentials; signing an IPA does. Installation on a device and submission to Apple are separate steps.
 
 ## Signing setup and device preparation
 
@@ -205,7 +217,7 @@ The [website source](docs/index.html) includes an embedded player, commands, com
 - `examples/`: independent minimal Expo and Godot apps; change the Expo identity before signing.
 - `tests/`: tests requiring no certificates, device, or Apple SDKs.
 - External toolchain: `~/.local/share/ios-anywhere/toolchain`.
-- Disposable cache: `~/.cache/ios-anywhere`, containing source copies, resources, products, and logs. Do not share it: projects and configurations may contain private data.
+- Build cache: the config's `cache` path (`~/.cache/ios-anywhere` in the example config; `build-cache` beside the toolchain for guided setup). Contains source copies, resources, products, and logs. Do not share it: projects and configurations may contain private data.
 - Local configuration: `~/.config/ios-anywhere/config.json`.
 
 No project is selected implicitly. Builds do not depend on the working directory or clone location. CocoaPods generates absolute paths in the cache; rebuild after moving it. Do not move or delete the toolchain or cache during a build.
@@ -232,7 +244,9 @@ See [Validation](docs/validation.md) for real-world checks and [Architecture](do
 
 ## FAQ
 
-**Do I need a Mac to run this workflow?** Not in the prepared Linux environment. The external toolchain and SDKs are prerequisites; the Python package does not install them.
+**Do I need a Mac to run this workflow?** Builds run in the prepared Linux environment. You still need compatible tools and SDKs. `pip install` installs the CLI; `ios-anywhere setup` prepares the Godot toolchain. Expo preparation remains manual.
+
+**Can setup download the SDK for me?** Yes, if you explicitly select the unofficial pinned mirror. You can also import a local SDK. See [SDK choices](docs/setup.md#sdk-choices) for sources and limitations.
 
 **Do I need EAS Build?** No. The Expo backend uses local Expo ecosystem tools. Store submission is a separate step.
 
@@ -242,6 +256,7 @@ See [Validation](docs/validation.md) for real-world checks and [Architecture](do
 
 ## Documentation
 
+- [Guided Godot setup](docs/setup.md)
 - [Installation details](docs/installation.md)
 - [Signing credentials and device setup](docs/signing.md)
 - [Toolchain setup](docs/toolchain.md)
