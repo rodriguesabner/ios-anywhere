@@ -241,6 +241,7 @@ def stage(job):
 def build(config, source, bundle_id, output, credentials):
     signing.check_output(output)
     signing.check_credentials(credentials)
+    signing.check_identity(credentials, bundle_id)
     job = prepare(config, source, bundle_id)
     bundle(config, job)
     native(config, job)

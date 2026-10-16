@@ -68,6 +68,8 @@ Use **↑ / ↓** to select, **Enter** to continue, and **Ctrl+C** to cancel. Fi
 
 **Which configuration?** A config locates your installed tools; it is not your Apple credentials. The selector shows its name, toolchain folder and config path. Use `expo.json` for Expo and `godot.json` for Godot; older `config.json` installations keep their original name. The guided flow checks the selected tools before building.
 
+**Bundle ID:** the guided review displays the Expo `ios.bundleIdentifier` and checks it against the supplied provisioning profiles. Builds also perform this check before preparing native sources. Missing or mismatched identifiers stop with instructions to fix the Expo configuration or select matching credentials. Dynamic `app.config.js` / `app.config.ts` configurations are resolved with the project's installed Expo CLI; run `npm ci` in the project first if dependencies are missing. This identity check does not replace final signature verification.
+
 **Which signing folder?** Choose a new private folder outside your project, such as `~/private-signing/my-app`. The signing assistant saves the certificate, profile and `credentials.json` there. If you already have these files, select **Use an existing credentials.json** instead. The first signing setup asks to download npm helpers that communicate with Apple; this does not start an EAS build. Apple resource creation requires a separate confirmation.
 
 The five steps below show the same workflow with explicit commands.

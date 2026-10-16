@@ -29,6 +29,29 @@ def run(args, cwd, log, env=None):
         raise ValueError(f"Step {log.stem} failed; see {log}")
 
 
+def bundle_identifier(config, source):
+    """Resolve dynamic Expo config with the project's installed Expo CLI."""
+    dynamic = any((source / name).exists() for name in ('app.config.js', 'app.config.ts'))
+    if dynamic or not (source / 'app.json').is_file():
+        cli = source / 'node_modules/expo/bin/cli'
+        if not cli.is_file():
+            raise ValueError('Install project dependencies (npm ci) to resolve the Expo config before building.')
+        result = subprocess.run(['node', str(cli), 'config', '--json'], cwd=source,
+                                env=dict(config.env(), NODE_ENV='production', CI='1'),
+                                capture_output=True, text=True)
+        if result.returncode:
+            raise ValueError('Cannot resolve Expo config. Run npx expo config --json in the project to diagnose it.')
+        data = json.loads(result.stdout)
+    else:
+        data = json.loads((source / 'app.json').read_text())
+    data = data.get('expo', data)
+    identifier = data.get('ios', {}).get('bundleIdentifier')
+    if not isinstance(identifier, str) or not re.fullmatch(r'[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+', identifier):
+        raise ValueError('Set ios.bundleIdentifier in app.json (inside expo), app.config.js or app.config.ts. '
+                         'It must match your provisioning profile, for example com.example.myapp.')
+    return identifier
+
+
 def build_directory(config, source):
     source = source.resolve()
 
@@ -1015,6 +1038,9 @@ def build(config, source, output, credentials):
             "Provide --credentials with iOS credentials; the default file is the project's credentials.json."
         )
 
+    identifier = bundle_identifier(config, source)
+    print(f'Bundle ID: {identifier}')
+    signing.check_identity(credentials, identifier)
     job = prepare(config, source)
     bundle(config, job)
     native(config, job)

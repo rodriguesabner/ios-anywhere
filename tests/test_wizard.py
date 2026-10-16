@@ -7,6 +7,14 @@ from ios_linux import interactive as ui, wizard
 
 
 class WizardTests(unittest.TestCase):
+    def setUp(self):
+        for target, value in [('ios_linux.config.Config.load', None),
+                              ('ios_linux.expo.bundle_identifier', 'com.example.app'),
+                              ('ios_linux.signing.check_identity', None)]:
+            mock = patch(target, return_value=value)
+            mock.start()
+            self.addCleanup(mock.stop)
+
     def test_reuse_and_install_retry_never_rebuilds(self):
         calls = []
         def command(argv):
